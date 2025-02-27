@@ -6,23 +6,25 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 app = FastAPI()
 
-KAFKA_BROKER = "3.215.22.12:9092"  # Replace with your broker IP
-TOPIC = "a"
+KAFKA_BROKER = "34.204.166.243:9092"  
+TOPICS = ["a", "b"]
 
-messages = []  # Store messages in memory
-active_connections: List[WebSocket] = []  # Store active WebSocket connections
+messages = []  
+active_connections: List[WebSocket] = []  
 
 
 async def consume_from_kafka():
     """Continuously consume messages from Kafka and broadcast via WebSocket"""
-    consumer = AIOKafkaConsumer(TOPIC, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
+    consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
     await consumer.start()
     try:
         async for msg in consumer:
-            data = json.loads(msg.value.decode("utf-8"))
-            messages.append(data)  # Store received messages
+            values = json.loads(msg.value.decode("utf-8"))
+            topic = msg.topic
+            data = {"topic": topic, "value": values}
+            messages.append(data)
             print(f"📩 Received: {data}")
-            await broadcast(data)  # Send to WebSocket clients
+            await broadcast(data) 
     finally:
         await consumer.stop()
 
