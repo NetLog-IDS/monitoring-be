@@ -1,20 +1,19 @@
-from typing import List
 from aiokafka import AIOKafkaConsumer
 import asyncio
 import json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import crud, schemas
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from crud import *
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-KAFKA_BROKER = "44.211.33.13:9092"  
-TOPICS = ["traffics", "intruions", "network-flows"]
-
-# active_connections: List[WebSocket] = []  
+KAFKA_BROKER = os.getenv("KAFKA_BROKER")
+TOPICS = ["traffics", "intrusion", "network-flows"]
 
 class ConnectionManager:
     def __init__(self):
@@ -48,11 +47,15 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    # Fetch the latest 10 packets from the database
+    packets = get_network_packets(10)
+    intrusions = get_intrusion_detection_results(10)
+    return templates.TemplateResponse("index.html", {"request": request, "packets": packets, "intrusions": intrusions})
+
+@app.get("/intrusion")
+async def home(request: Request):
     packets = get_network_packets(10)
     
-    return templates.TemplateResponse("index.html", {"request": request, "packets": packets})
-
+    return templates.TemplateResponse("intrusion.html", {"request": request, "packets": packets})
 
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
@@ -64,7 +67,9 @@ async def consume_from_kafka():
             data = {"topic": topic, "value": values}
             if topic == "traffics":
                 create_network_packet(values)
-            print(f"📩 Received: {data}")
+            elif topic == "intrusion":
+                create_intrusion_detection_result(values)
+            # print(f"📩 Received: {data}")
             await broadcast(data) 
     finally:
         await consumer.stop()
@@ -73,10 +78,10 @@ async def consume_from_kafka():
 async def broadcast(data):
     """Send Kafka messages to all connected WebSocket clients"""
     try:
-        print("data to be send:", data)
-        print('sending...')
+        # print("data to be send:", data)
+        # print('sending...')
         await manager.broadcast_json(data)
-        print('sended...')
+        # print('sended...')
 
     except Exception as e:
         print(f"⚠️ WebSocket Error: {e}")
@@ -91,7 +96,3 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text() 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-
-@app.get("/packet/", response_model=list[schemas.NetworkPacketResponse])
-def read_packets(limit: int = 10):
-    return crud.get_network_packets(limit)

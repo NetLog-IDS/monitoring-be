@@ -14,3 +14,10 @@ class NetworkPacketCreate(NetworkPacketBase):
 class NetworkPacketResponse(NetworkPacketBase):
     class Config:
         from_attributes = True
+
+class IntrusionPredictionBase(BaseModel):
+    prediction: str
+    fid: str
+
+class IntrusionPredictionCreate(IntrusionPredictionBase):
+    pass
