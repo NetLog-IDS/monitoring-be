@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Network Packets</title>
+    <script>
+        let socket = new WebSocket("ws://localhost:8000/websocket");
+
+        socket.onmessage = function(event) {
+            console.log(event.data)
+            let data = JSON.parse(event.data);
+            let table = document.getElementById("packet-table");
+            let row = table.insertRow(1);  // Insert at the top
+
+            row.innerHTML = `
+                <td>${data.value.id}</td>
+                <td>${data.value.timestamp}</td>
+                <td>${data.value.order}</td>
+                <td>${JSON.stringify(data.value.layers)}</td>
+            `;
+        };
+    </script>
+</head>
+<body>
+    <h1>Real-Time Packet Capture</h1>
+    <table border="1" id="packet-table">
+        <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Order</th>
+            <th>Layers</th>
+        </tr>
+        {% for packet in packets %}
+        <tr>
+            <td>{{ packet.id }}</td>
+            <td>{{ packet.timestamp }}</td>
+            <td>{{ packet.order }}</td>
+            <td>{{ packet.layers }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

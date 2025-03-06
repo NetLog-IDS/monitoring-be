@@ -1,0 +1,11 @@
+from sqlalchemy import Column, String, TIMESTAMP, Integer, JSON
+from sqlalchemy.sql import func
+from database import Base
+
+class NetworkPacket(Base):
+    __tablename__ = "network_packets"
+    uid = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String)
+    timestamp = Column(TIMESTAMP, server_default=func.now(), index=True)
+    order = Column(Integer)
+    layers = Column(JSON) 
