@@ -21,3 +21,4 @@ class IntrusionPredictionBase(BaseModel):
 
 class IntrusionPredictionCreate(IntrusionPredictionBase):
     pass
+

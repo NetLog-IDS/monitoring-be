@@ -8,12 +8,12 @@ from crud import *
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(override=True)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 KAFKA_BROKER = os.getenv("KAFKA_BROKER")
-TOPICS = ["traffics", "intrusion", "network-flows"]
+TOPICS = ["network-traffic", "intrusion", "network-flows"]
 
 class ConnectionManager:
     def __init__(self):
@@ -48,14 +48,10 @@ async def startup_event():
 @app.get("/")
 async def home(request: Request):
     packets = get_network_packets(10)
+    for p in packets:
+        print(p)
     intrusions = get_intrusion_detection_results(10)
-    return templates.TemplateResponse("index.html", {"request": request, "packets": packets, "intrusions": intrusions})
-
-@app.get("/intrusion")
-async def home(request: Request):
-    packets = get_network_packets(10)
-    
-    return templates.TemplateResponse("intrusion.html", {"request": request, "packets": packets})
+    return templates.TemplateResponse("index.html", {"request": request, "intrusions": intrusions})
 
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
@@ -65,12 +61,15 @@ async def consume_from_kafka():
             values = json.loads(msg.value.decode("utf-8"))
             topic = msg.topic
             data = {"topic": topic, "value": values}
-            if topic == "traffics":
+            if topic == "network-traffic":
                 create_network_packet(values)
-            elif topic == "intrusion":
+            elif topic == "network-flows":
+                create_network_flows(values)
+            else:
                 create_intrusion_detection_result(values)
-            # print(f"📩 Received: {data}")
-            await broadcast(data) 
+                await broadcast(data) 
+            # # print(f"📩 Received: {data}")
+            # await broadcast(data) 
     finally:
         await consumer.stop()
 

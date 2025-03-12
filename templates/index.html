@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Network Packets</title>
+    <title>Live Network Intrusion Detection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         let socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
@@ -12,84 +12,32 @@
             let data = JSON.parse(event.data);
             console.log(data);
 
-            if (data.topic === "traffics") {
-                let table = document.getElementById("packet-table-body");
-                let row = document.createElement("tr");
-                row.classList.add("border-b", "hover:bg-gray-100");
+            let table = document.getElementById("intrusion-table-body");
+            let row = document.createElement("tr");
+            row.classList.add("border-b", "hover:bg-gray-100");
 
-                row.innerHTML = `
-                    <td class="p-3 text-sm text-gray-900">${data.value.id}</td>
-                    <td class="p-3 text-sm text-gray-900">${data.value.timestamp}</td>
-                    <td class="p-3 text-sm text-gray-900">${data.value.order}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">${JSON.stringify(data.value.layers.data_link)}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">${JSON.stringify(data.value.layers.frame)}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">${JSON.stringify(data.value.layers.network)}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">${JSON.stringify(data.value.layers.transport)}</td>
-                `;
+            row.innerHTML = `
+                <td class="p-3 text-sm text-gray-900">${data.value.fid}</td>
+                <td class="p-3 text-sm text-gray-900 ${data.value.prediction !== 'Benign' ? 'text-red-500' : ''}">${data.value.prediction}</td>
+            `;
 
-                table.prepend(row);
-            }
-
-            if (data.topic === "intrusion") {
-                let table = document.getElementById("intrusion-table-body");
-                let row = document.createElement("tr");
-                row.classList.add("border-b", "hover:bg-gray-100");
-
-                row.innerHTML = `
-                    <td class="p-3 text-sm text-gray-900">${data.value.fid}</td>
-                    <td class="p-3 text-sm text-gray-900 ${data.value.prediction !== 'BENIGN' ? 'text-red-500' : ''}">${data.value.prediction}</td>
-                `;
-
-                table.prepend(row);
-            }
+            table.prepend(row);
         };
-
-        function toggleTable(tableType) {
-            document.getElementById("packet-table").classList.toggle("hidden", tableType !== "packet");
-            document.getElementById("intrusion-table").classList.toggle("hidden", tableType !== "intrusion");
-        }
     </script>
 </head>
 <body class="bg-gray-100 flex flex-col items-center p-5">
-    <h1 class="text-2xl font-bold mb-5 text-gray-800">Real-Time Network Monitoring</h1>
+    <h1 class="text-2xl font-bold mb-5 text-gray-800">Real-Time Network Intrusion Monitoring</h1>
 
     <div class="mb-5">
-        <button onclick="toggleTable('packet')" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-700">Packet Capture Table</button>
+        <!-- <button onclick="toggleTable('packet')" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-700">Packet Capture Table</button>
         <button onclick="toggleTable('intrusion')" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-700">Network Flow Table</button>
-        <button onclick="toggleTable('intrusion')" class="px-4 py-2 ml-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-700">Intrusion Detection Table</button>
+        <button onclick="toggleTable('intrusion')" class="px-4 py-2 ml-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-700">Intrusion Detection Table</button> -->
     </div>
 
     <div class="w-full max-w-5xl bg-white shadow-md rounded-lg overflow-hidden">
-        <!-- Packet Capture Table -->
-        <table id="packet-table" class="w-full table-auto">
-            <thead class="bg-gray-800 text-white">
-                <tr>
-                    <th class="p-3 text-left">ID</th>
-                    <th class="p-3 text-left">Timestamp</th>
-                    <th class="p-3 text-left">Order</th>
-                    <th class="p-3 text-left">Layers - Data Link</th>
-                    <th class="p-3 text-left">Layers - Frame</th>
-                    <th class="p-3 text-left">Layers - Network</th>
-                    <th class="p-3 text-left">Layers - Transport</th>
-                </tr>
-            </thead>
-            <tbody id="packet-table-body" class="bg-white divide-y divide-gray-200">
-                {% for packet in packets %}
-                <tr class="border-b hover:bg-gray-100">
-                    <td class="p-3 text-sm text-gray-900">{{ packet.id }}</td>
-                    <td class="p-3 text-sm text-gray-900">{{ packet.timestamp }}</td>
-                    <td class="p-3 text-sm text-gray-900">{{ packet.order }}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">{{ packet.layers.data_link }}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">{{ packet.layers.frame }}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">{{ packet.layers.network }}</td>
-                    <td class="p-3 text-sm text-gray-900 whitespace-normal break-all">{{ packet.layers.transport }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
 
         <!-- Intrusion Detection Table (Hidden by Default) -->
-        <table id="intrusion-table" class="w-full table-auto hidden">
+        <table id="intrusion-table" class="w-full table-auto">
             <thead class="bg-red-800 text-white">
                 <tr>
                     <th class="p-3 text-left">Flow ID</th>
@@ -101,7 +49,7 @@
                 <tr class="border-b hover:bg-gray-100">
                     <td class="p-3 text-sm text-gray-900">{{ intrusion.fid }}</td>
                     <!-- <td class="p-3 text-sm text-gray-900">{{ intrusion.prediction }}</td> -->
-                    <td class="p-3 text-sm text-gray-900 {% if intrusion.prediction != 'BENIGN' %}text-red-500{% endif %}">{{ intrusion.prediction }}</td>
+                    <td class="p-3 text-sm text-gray-900 {% if intrusion.prediction != 'Benign' %}text-red-500{% endif %}">{{ intrusion.prediction }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
