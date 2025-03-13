@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, TIMESTAMP, Integer, JSON
+from sqlalchemy import Column, String, TIMESTAMP, Integer
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base
 from database import Base
@@ -10,8 +11,11 @@ class NetworkPacket(Base):
     uid = Column(Integer, primary_key=True, autoincrement=True)
     id = Column(String)
     timestamp = Column(TIMESTAMP, index=True)
-    order = Column(Integer)
-    layers = Column(JSON) 
+    srcIp = Column(String)
+    srcPort = Column(Integer)
+    dstIp = Column(String)
+    dstPort = Column(Integer)
+    layers = Column(JSONB) 
 
 class IntrusionPrediction(Base):
     __tablename__ = "intrusion_predictions"
@@ -29,4 +33,4 @@ class NetworkFlow(Base):
     dstIp = Column(String)
     dstPort = Column(Integer)
     timestamp = Column(TIMESTAMP, index=True)
-    data = Column(JSON)
+    data = Column(JSONB)

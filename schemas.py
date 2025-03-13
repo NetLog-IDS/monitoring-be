@@ -5,7 +5,6 @@ from typing import Dict, Any
 class NetworkPacketBase(BaseModel):
     id: str
     timestamp: datetime
-    order: int
     layers: Dict[str, Any] 
 
 class NetworkPacketCreate(NetworkPacketBase):

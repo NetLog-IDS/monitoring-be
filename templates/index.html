@@ -19,6 +19,9 @@
             row.innerHTML = `
                 <td class="p-3 text-sm text-gray-900">${data.value.fid}</td>
                 <td class="p-3 text-sm text-gray-900 ${data.value.prediction !== 'Benign' ? 'text-red-500' : ''}">${data.value.prediction}</td>
+                <td class="p-3 text-sm">
+                    <a href="/details/${data.value.fid}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
+                </td>
             `;
 
             table.prepend(row);
@@ -26,13 +29,7 @@
     </script>
 </head>
 <body class="bg-gray-100 flex flex-col items-center p-5">
-    <h1 class="text-2xl font-bold mb-5 text-gray-800">Real-Time Network Intrusion Monitoring</h1>
-
-    <div class="mb-5">
-        <!-- <button onclick="toggleTable('packet')" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-700">Packet Capture Table</button>
-        <button onclick="toggleTable('intrusion')" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-700">Network Flow Table</button>
-        <button onclick="toggleTable('intrusion')" class="px-4 py-2 ml-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-700">Intrusion Detection Table</button> -->
-    </div>
+    <h1 class="text-2xl font-bold mb-5 text-gray-800">Real-Time Intrusion Detection Monitoring</h1>
 
     <div class="w-full max-w-5xl bg-white shadow-md rounded-lg overflow-hidden">
 
@@ -42,14 +39,17 @@
                 <tr>
                     <th class="p-3 text-left">Flow ID</th>
                     <th class="p-3 text-left">Prediction</th>
+                    <th class="p-3 text-left">See Flow Details</th>
                 </tr>
             </thead>
             <tbody id="intrusion-table-body" class="bg-white divide-y divide-gray-200">
                 {% for intrusion in intrusions %}
                 <tr class="border-b hover:bg-gray-100">
                     <td class="p-3 text-sm text-gray-900">{{ intrusion.fid }}</td>
-                    <!-- <td class="p-3 text-sm text-gray-900">{{ intrusion.prediction }}</td> -->
                     <td class="p-3 text-sm text-gray-900 {% if intrusion.prediction != 'Benign' %}text-red-500{% endif %}">{{ intrusion.prediction }}</td>
+                    <td class="p-3 text-sm">
+                        <a href="/details/{{ intrusion.fid }}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
