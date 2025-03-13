@@ -174,7 +174,7 @@
                         {% for intrusion in intrusions %}
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                             <td class="p-4 text-sm text-gray-900 dark:text-gray-200">{{ intrusion.fid }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.timestamp }}</td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">Old Data</td>
                             <td class="p-4 text-sm">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full {% if intrusion.prediction != 'Benign' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% endif %}">
                                     {{ intrusion.prediction }}

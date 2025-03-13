@@ -59,7 +59,7 @@ async def flow_details(request: Request, flow_id: str = None):
     packets = get_network_packets_for_flow(flow.timestamp - timedelta(minutes=3), flow.timestamp + timedelta(minutes=3), flow.srcIp, flow.srcPort, flow.dstIp, flow.dstPort)
     if not packets:
        raise HTTPException(status_code=404, detail="Packets not found")
-    return templates.TemplateResponse("details.html", {"request": request, "flow": flow.__dict__, "packets": packets})
+    return templates.TemplateResponse("flow-details.html", {"request": request, "flow": flow.__dict__, "packets": packets})
 
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
