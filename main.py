@@ -47,11 +47,8 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    packets = get_network_packets(10)
-    for p in packets:
-        print(p.timestamp)
     intrusions = get_intrusion_detection_results(10)
-    return templates.TemplateResponse("index.html", {"request": request, "intrusions": intrusions})
+    return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
 
 @app.get("/details/{flow_id}")
 async def flow_details(request: Request, flow_id: str = None):
