@@ -20,7 +20,7 @@
                 <td class="p-3 text-sm text-gray-900">${data.value.fid}</td>
                 <td class="p-3 text-sm text-gray-900 ${data.value.prediction !== 'Benign' ? 'text-red-500' : ''}">${data.value.prediction}</td>
                 <td class="p-3 text-sm">
-                    <a href="/details/${data.value.fid}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
+                    <a href="/details/${data.value.fid}/${data.value.prediction}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
                 </td>
             `;
 
@@ -48,7 +48,7 @@
                     <td class="p-3 text-sm text-gray-900">{{ intrusion.fid }}</td>
                     <td class="p-3 text-sm text-gray-900 {% if intrusion.prediction != 'Benign' %}text-red-500{% endif %}">{{ intrusion.prediction }}</td>
                     <td class="p-3 text-sm">
-                        <a href="/details/{{ intrusion.fid }}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
+                        <a href="/details/{{ intrusion.fid }}/{{ intrusion.prediction }}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Details</a>
                     </td>
                 </tr>
                 {% endfor %}

@@ -123,6 +123,10 @@
                 <i class="fas fa-moon dark:hidden text-gray-600"></i>
                 <i class="fas fa-sun hidden dark:block text-yellow-300"></i>
             </button>
+            <!-- <button id="export-btn" class="bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800/30 text-primary-700 dark:text-primary-300 px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-download mr-2"></i>
+                <span>Export</span>
+            </button> -->
         </div>
     </nav>
 
@@ -159,6 +163,17 @@
                         </p>
                     </div>
                 </div>
+                <!-- <div>
+                    {% if prediction != 'Benign' %}
+                        <button class="bg-white text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-ban mr-2"></i>Block Source
+                        </button>
+                    {% else %}
+                        <button class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-check mr-2"></i>Mark as Reviewed
+                        </button>
+                    {% endif %}
+                </div> -->
             </div>
         </div>
 
@@ -188,24 +203,70 @@
                                     <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Source IP</td>
                                     <td class="p-3 text-sm flex items-center">
                                         {{ flow.srcIp }}
+                                        <!-- <a href="#" class="ml-2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300" title="Lookup IP">
+                                            <i class="fas fa-search text-xs"></i>
+                                        </a>
+                                        <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            {% if flow.srcIp == '192.168.1.1' %}
+                                                Internal
+                                            {% else %}
+                                                External
+                                            {% endif %}
+                                        </span> -->
                                     </td>
                                 </tr>
                                 <tr class="border-b border-gray-200 dark:border-gray-700">
                                     <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Source Port</td>
                                     <td class="p-3 text-sm">
                                         {{ flow.srcPort }}
+                                        <!-- <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            {% if flow.srcPort < 1024 %}
+                                                Well-known
+                                            {% elif flow.srcPort < 49152 %}
+                                                Registered
+                                            {% else %}
+                                                Dynamic
+                                            {% endif %}
+                                        </span> -->
                                     </td>
                                 </tr>
                                 <tr class="border-b border-gray-200 dark:border-gray-700">
                                     <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Destination IP</td>
                                     <td class="p-3 text-sm flex items-center">
                                         {{ flow.dstIp }}
+                                        <!-- <a href="#" class="ml-2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300" title="Lookup IP">
+                                            <i class="fas fa-search text-xs"></i>
+                                        </a> -->
+                                        <!-- <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            {% if flow.dstIp == '192.168.1.1' %}
+                                                Internal
+                                            {% else %}
+                                                External
+                                            {% endif %}
+                                        </span> -->
                                     </td>
                                 </tr>
                                 <tr class="border-b border-gray-200 dark:border-gray-700">
                                     <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Destination Port</td>
                                     <td class="p-3 text-sm">
                                         {{ flow.dstPort }}
+                                        <!-- <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                            {% if flow.dstPort == 80 %}
+                                                HTTP
+                                            {% elif flow.dstPort == 443 %}
+                                                HTTPS
+                                            {% elif flow.dstPort == 22 %}
+                                                SSH
+                                            {% elif flow.dstPort == 53 %}
+                                                DNS
+                                            {% elif flow.dstPort < 1024 %}
+                                                Well-known
+                                            {% elif flow.dstPort < 49152 %}
+                                                Registered
+                                            {% else %}
+                                                Dynamic
+                                            {% endif %}
+                                        </span> -->
                                     </td>
                                 </tr>
                                 <tr>
@@ -233,7 +294,93 @@
                 </div>
             </div>
             
-            
+            <!-- Flow Visualization Card -->
+            <!-- <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                        <i class="fas fa-chart-network mr-2 text-primary-500 dark:text-primary-400"></i>
+                        Flow Visualization
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <div class="flex flex-col items-center justify-center h-48">
+                            <div class="flex items-center justify-between w-full max-w-xs">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2">
+                                        <i class="fas fa-laptop text-blue-600 dark:text-blue-400 text-xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium">{{ flow.srcIp }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Port {{ flow.srcPort }}</span>
+                                </div>
+                                
+                                <div class="flex-1 px-4 relative">
+                                    <div class="h-0.5 bg-primary-500 dark:bg-primary-400 w-full relative">
+                                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-700 px-2 text-xs text-gray-500 dark:text-gray-400">
+                                            {% if flow.dstPort == 80 %}
+                                                HTTP
+                                            {% elif flow.dstPort == 443 %}
+                                                HTTPS
+                                            {% elif flow.dstPort == 22 %}
+                                                SSH
+                                            {% elif flow.dstPort == 53 %}
+                                                DNS
+                                            {% else %}
+                                                TCP/IP
+                                            {% endif %}
+                                        </div>
+                                        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-ping">
+                                            <i class="fas fa-circle text-primary-500 dark:text-primary-400 text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                        <i class="fas fa-exchange-alt text-primary-600 dark:text-primary-400"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-2">
+                                        <i class="fas fa-server text-purple-600 dark:text-purple-400 text-xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium">{{ flow.dstIp }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Port {{ flow.dstPort }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Packet Size Distribution</h3>
+                    <div class="bg-white dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <canvas id="packetSizeChart" height="200"></canvas>
+                    </div>
+                    
+                    <h3 class="text-md font-semibold text-gray-800 dark:text-white mb-2">Flow Timeline</h3>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 overflow-y-auto max-h-48">
+                        <div class="relative pl-6">
+                            <div class="timeline-item relative pb-4">
+                                <div class="font-medium text-sm">Flow Initiated</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ flow.timestamp }}</div>
+                            </div>
+                            <div class="timeline-item relative pb-4">
+                                <div class="font-medium text-sm">First Packet Sent</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ flow.timestamp }}</div>
+                            </div>
+                            <div class="timeline-item relative pb-4">
+                                <div class="font-medium text-sm">Response Received</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ flow.timestamp }}</div>
+                            </div>
+                            <div class="timeline-item relative pb-4">
+                                <div class="font-medium text-sm">Data Transfer</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ flow.timestamp }}</div>
+                            </div>
+                            <div class="timeline-item relative">
+                                <div class="font-medium text-sm">Flow Completed</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ flow.timestamp }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> -->
         </div>
 
         <!-- Packets Section -->
@@ -320,8 +467,7 @@
                                 {{ packet.layers.frame.length }} bytes
                             </td>
                             <td class="p-4 text-sm">
-                                <button class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium packet-details-btn"
-                                    data-packet="{{ packet  }}">
+                                <button class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium packet-details-btn">
                                     <i class="fas fa-eye mr-1"></i> View
                                 </button>
                             </td>
@@ -447,6 +593,47 @@
                         </div>
                     </div>
                     
+                    <!-- Packet Payload -->
+                    <!-- <div class="mb-6">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Packet Payload</h4>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 overflow-x-auto">
+                            <div class="flex mb-2">
+                                <button class="px-3 py-1 text-xs font-medium rounded-md bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 mr-2">Hex View</button>
+                                <button class="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 mr-2">ASCII View</button>
+                                <button class="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Decoded View</button>
+                            </div>
+                            <div class="hexdump font-mono whitespace-nowrap">
+                                <div><span class="offset">0000</span>: <span class="hex">47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a</span>  <span class="ascii">GET / HTTP/1.1..</span></div>
+                                <div><span class="offset">0010</span>: <span class="hex">48 6f 73 74 3a 20 65 78 61 6d 70 6c 65 2e 63 6f</span>  <span class="ascii">Host: example.co</span></div>
+                                <div><span class="offset">0020</span>: <span class="hex">6d 0d 0a 55 73 65 72 2d 41 67 65 6e 74 3a 20 4d</span>  <span class="ascii">m..User-Agent: M</span></div>
+                                <div><span class="offset">0030</span>: <span class="hex">6f 7a 69 6c 6c 61 2f 35 2e 30 20 28 57 69 6e 64</span>  <span class="ascii">ozilla/5.0 (Wind</span></div>
+                                <div><span class="offset">0040</span>: <span class="hex">6f 77 73 20 4e 54 20 31 30 2e 30 3b 20 57 69 6e</span>  <span class="ascii">ows NT 10.0; Win</span></div>
+                                <div><span class="offset">0050</span>: <span class="hex">36 34 3b 20 78 36 34 29 20 41 70 70 6c 65 57 65</span>  <span class="ascii">64; x64) AppleWe</span></div>
+                                <div class="pulse-highlight"><span class="offset">0060</span>: <span class="hex">62 4b 69 74 2f 35 33 37 2e 33 36 0d 0a 41 63 63</span>  <span class="ascii">bKit/537.36..Acc</span></div>
+                                <div><span class="offset">0070</span>: <span class="hex">65 70 74 3a 20 2a 2f 2a 0d 0a 0d 0a</span>  <span class="ascii">ept: */*...</span></div>
+                            </div>
+                        </div>
+                    </div> -->
+                    
+                    <!-- Packet Analysis -->
+                    <!-- <div>
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Packet Analysis</h4>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                This packet appears to be a standard HTTP GET request to example.com. The TCP connection is established with SYN, ACK flags set.
+                            </p>
+                            <div class="flex flex-wrap gap-2 mt-4">
+                                <button class="bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-800/30 text-primary-700 dark:text-primary-300 px-3 py-1.5 rounded-lg text-sm flex items-center">
+                                    <i class="fas fa-file-export mr-2"></i>
+                                    <span>Export PCAP</span>
+                                </button>
+                                <button class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg text-sm flex items-center">
+                                    <i class="fas fa-search-plus mr-2"></i>
+                                    <span>Deep Inspection</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div> -->
                 </div>
             </div>
         </div>
@@ -468,125 +655,60 @@
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         });
 
+        // Packet size chart
+        // const packetSizeCtx = document.getElementById('packetSizeChart').getContext('2d');
+        // const packetSizeChart = new Chart(packetSizeCtx, {
+        //     type: 'bar',
+        //     data: {
+        //         labels: ['0-100', '101-200', '201-500', '501-1000', '1001+'],
+        //         datasets: [{
+        //             label: 'Packet Size (bytes)',
+        //             data: [4, 7, 3, 2, 1],
+        //             backgroundColor: [
+        //                 'rgba(14, 165, 233, 0.2)',
+        //                 'rgba(14, 165, 233, 0.4)',
+        //                 'rgba(14, 165, 233, 0.6)',
+        //                 'rgba(14, 165, 233, 0.8)',
+        //                 'rgba(14, 165, 233, 1)'
+        //             ],
+        //             borderColor: [
+        //                 'rgba(14, 165, 233, 1)',
+        //                 'rgba(14, 165, 233, 1)',
+        //                 'rgba(14, 165, 233, 1)',
+        //                 'rgba(14, 165, 233, 1)',
+        //                 'rgba(14, 165, 233, 1)'
+        //             ],
+        //             borderWidth: 1
+        //         }]
+        //     },
+        //     options: {
+        //         responsive: true,
+        //         maintainAspectRatio: false,
+        //         plugins: {
+        //             legend: {
+        //                 display: false
+        //             }
+        //         },
+        //         scales: {
+        //             y: {
+        //                 beginAtZero: true,
+        //                 ticks: {
+        //                     precision: 0
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
+
+
         // Packet details modal
         
         const packetDetailsModal = document.getElementById('packet-details-modal');
         const closeModalBtn = document.getElementById('close-modal');
         const packetDetailsBtns = document.querySelectorAll('.packet-details-btn');
-        const packetDetailsContent = document.getElementById("packet-details-content");
         
         packetDetailsBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const packet = JSON.parse(btn.dataset.packet.replace(/'/g, '"'));
-                console.log(packet)
-
-                packetDetailsContent.innerHTML = `
-                    <!-- Packet Header Information -->
-                    <div class="mb-6">
-                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Packet Header</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Frame</h5>
-                                <table class="w-full text-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Frame Number:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.frame.number || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Length:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.frame.length || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Protocol:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.frame.protocols || "Not Available"}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ethernet Frame</h5>
-                                <table class="w-full text-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Source MAC:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.data_link.src || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Destination MAC:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.data_link.dst || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Type:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.data_link.type || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Header Size:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.data_link.header_size || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Trailer Size:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.data_link.trailer_size || "Not Available"}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IP Header</h5>
-                                <table class="w-full text-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Version:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.network.version || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Header Length:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.network.hdr_len || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">TTL:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.network.ttl || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Protocol Number:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.network.proto || "Not Available"}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transport Layer</h5>
-                                <table class="w-full text-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Source Port:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.transport.src_port || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Destination Port:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.transport.dst_port || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Sequence Number:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.transport.seq || "Not Available"}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-1 text-gray-500 dark:text-gray-400">Flags:</td>
-                                            <td class="py-1 text-gray-900 dark:text-gray-200">${packet.layers.transport.flags || "Not Available"}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                        </div>
-                    </div>
-                
-                `
-
                 packetDetailsModal.classList.remove('hidden');
             });
         });
