@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from models import NetworkPacket, IntrusionPrediction, NetworkFlow
+from models import NetworkPacket, IntrusionPrediction, NetworkFlow, Email
 from schemas import NetworkPacketCreate, IntrusionPredictionCreate
 from sqlalchemy.orm import Session
 from database import SessionLocal
@@ -109,7 +109,6 @@ def create_network_flows(raw_flow: dict):
             dstPort = raw_flow["dstPort"], 
             data = raw_flow
         )
-        # print(datetime.strptime(raw_flow["timestamp"], "%d/%m/%Y %I:%M:%S %p")) # datetime.strptime(flow.timestamp, "%d/%m/%Y %H:%M:%S")
         db.add(flow)
         db.commit()
         db.refresh(flow)
@@ -124,6 +123,30 @@ def get_network_flows_with_fid(fid: str = None):
     db: Session = SessionLocal() 
     try:
         return db.query(NetworkFlow).where(NetworkFlow.fid == fid).order_by(NetworkFlow.timestamp.desc()).first()
+    except Exception as e:
+        db.rollback()  
+        raise e
+    finally:
+        db.close()
+
+def create_email_subscription(email: str):
+    db: Session = SessionLocal() 
+    try:
+        db_email = Email(email=email)
+        db.add(db_email)
+        db.commit()
+        db.refresh(db_email)
+        return db_email
+    except Exception as e:
+        db.rollback()  
+        raise e
+    finally:
+        db.close()
+
+def get_email_subscriptions():
+    db: Session = SessionLocal() 
+    try:
+        return db.query(Email.email).all()
     except Exception as e:
         db.rollback()  
         raise e

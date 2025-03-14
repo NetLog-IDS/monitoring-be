@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 class NetworkPacketBase(BaseModel):
     id: str
@@ -20,4 +20,3 @@ class IntrusionPredictionBase(BaseModel):
 
 class IntrusionPredictionCreate(IntrusionPredictionBase):
     pass
-

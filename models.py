@@ -34,3 +34,7 @@ class NetworkFlow(Base):
     dstPort = Column(Integer)
     timestamp = Column(TIMESTAMP, index=True)
     data = Column(JSONB)
+
+class Email(Base):
+    __tablename__ = "emails"
+    email = Column(String, primary_key=True)
