@@ -107,6 +107,7 @@ def create_network_flows(raw_flow: dict):
             srcPort = raw_flow["srcPort"],
             dstIp = raw_flow["dstIp"],
             dstPort = raw_flow["dstPort"], 
+            duration = raw_flow["flowDuration"], 
             data = raw_flow
         )
         db.add(flow)
@@ -147,6 +148,21 @@ def get_email_subscriptions():
     db: Session = SessionLocal() 
     try:
         return db.query(Email.email).all()
+    except Exception as e:
+        db.rollback()  
+        raise e
+    finally:
+        db.close()
+
+def delete_email_subscription(email: str):
+    db: Session = SessionLocal() 
+    try:
+        db_email = db.query(Email).where(Email.email == email).first()
+        if not db_email:
+            raise Exception("Email not found")
+        db.delete(db_email)
+        db.commit()
+        return db_email
     except Exception as e:
         db.rollback()  
         raise e

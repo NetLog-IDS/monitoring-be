@@ -35,7 +35,7 @@ async def flow_details(request: Request, flow_id: str = None, prediction: str = 
     flow = get_network_flows_with_fid(flow_id)
     if not flow:
        raise HTTPException(status_code=404, detail="Flow not found")
-    packets = get_network_packets_for_flow(flow.timestamp - timedelta(minutes=3), flow.timestamp + timedelta(minutes=3), flow.srcIp, flow.srcPort, flow.dstIp, flow.dstPort)
+    packets = get_network_packets_for_flow(flow.timestamp, flow.timestamp + timedelta(seconds=flow.duration//1_000_000), flow.srcIp, flow.srcPort, flow.dstIp, flow.dstPort)
     if not packets:
        raise HTTPException(status_code=404, detail="Packets not found")
     packets_as_dict = []
@@ -72,10 +72,9 @@ async def consume_from_kafka():
                         "srcIp": values["fid"].split("-")[0],
                         "srcPort": values["fid"].split("-")[2],
                         "dstIp": values["fid"].split("-")[1],
-                        "dstPort": values["fid"].split("-")[4]
+                        "dstPort": values["fid"].split("-")[3]
                     }
-                    print("initiate sending email")
-                    await send_email({"email":email,"body": body})
+                    asyncio.create_task(send_email({"email":email,"body": body}))
     finally:
         await consumer.stop()
 
@@ -108,3 +107,14 @@ async def subscribe(email: str = Form(...)):
             raise HTTPException(status_code=400, detail="Email already subscribed!")
         else:
             raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete('/unsubscribe/{email}')
+async def unsubscribe(email: str = None):
+    try:
+        delete_email_subscription(email)
+        return {"message": "Unsubscribed successfully!"}
+    except Exception as e:
+        if str(e).find("Email not found") != -1:
+            raise HTTPException(status_code=404, detail="Email not found!")
+        else:
+            raise HTTPException(status_code=400, detail=str(e)) 

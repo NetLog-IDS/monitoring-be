@@ -32,6 +32,7 @@ class NetworkFlow(Base):
     srcPort = Column(Integer)
     dstIp = Column(String)
     dstPort = Column(Integer)
+    duration = Column(Integer)
     timestamp = Column(TIMESTAMP, index=True)
     data = Column(JSONB)
 

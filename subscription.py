@@ -25,7 +25,5 @@ async def send_email(details) -> None:
         )
 
     fm = FastMail(conf)
-    print("sending email ...")
     await fm.send_message(message, template_name="email.html")
-    print("finish sending email!")
     return

@@ -60,6 +60,13 @@
                     <span>Subscribe to Alerts</span>
                 </button>
             </div>
+
+            <div class="relative">
+                <button id="open-unsubscribe-modal" class="bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/30 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-envelope mr-2"></i>
+                    <span>Unsubscribe Alerts</span>
+                </button>
+            </div>
             
             <div class="relative">
                 <input type="text" id="search-input" placeholder="Search flows with id..." 
@@ -258,6 +265,46 @@
                             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white rounded-lg flex items-center">
                             <span>Subscribe</span>
                             <span id="submit-spinner" class="ml-2 hidden">
+                                <i class="fas fa-circle-notch fa-spin"></i>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="unsubscribe-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Unsubscribe Alert Notifications</h3>
+                <button id="close-unsubscribe-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    Unsubscribe from email alerts when new intrusions are detected on your network.
+                </p>
+                <form id="email-unsubscribe-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                        <input type="email" id="email-unsubscribe" name="email" required 
+                            class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            placeholder="your@email.com">
+                    </div>
+                    
+                    <div id="form-message-unsubscribe" class="hidden rounded-md p-4 mt-3"></div>
+                    
+                    <div class="flex justify-end space-x-3 pt-2">
+                        <button type="button" id="cancel-unsubscribe" 
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg">
+                            Cancel
+                        </button>
+                        <button type="submit" id="submit-unsubscribe" 
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white rounded-lg flex items-center">
+                            <span>Unsubscribe</span>
+                            <span id="submit-spinner-unsubscribe" class="ml-2 hidden">
                                 <i class="fas fa-circle-notch fa-spin"></i>
                             </span>
                         </button>
@@ -566,6 +613,71 @@
                 formMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-300');
                 formMessage.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-300');
                 formMessage.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i> Network error. Please check your connection and try again.';
+            }
+        });
+
+        // Unsubscribe
+        const emailUnsubscribeModal = document.getElementById('unsubscribe-modal');
+        const openEmailUnsubscribeModalBtn = document.getElementById('open-unsubscribe-modal');
+        const closeEmailUnsubscribeModalBtn = document.getElementById('close-unsubscribe-modal');
+        const cancelUnsubscribeBtn = document.getElementById('cancel-unsubscribe');
+        const emailUnsubscribeForm = document.getElementById('email-unsubscribe-form');
+        const unsubscribeFormMessage = document.getElementById('form-message-unsubscribe');
+        const submitUnsubscribeSpinner = document.getElementById('submit-spinner-unsubscribe');
+        
+        openEmailUnsubscribeModalBtn.addEventListener('click', () => {
+            emailUnsubscribeModal.classList.remove('hidden');
+            emailUnsubscribeForm.reset();
+            unsubscribeFormMessage.classList.add('hidden');
+        });
+        
+        function closeEmailUnsubscribeModal() {
+            emailUnsubscribeModal.classList.add('hidden');
+        }
+        
+        closeEmailUnsubscribeModalBtn.addEventListener('click', closeEmailUnsubscribeModal);
+        cancelUnsubscribeBtn.addEventListener('click', closeEmailUnsubscribeModal);
+        
+        emailUnsubscribeModal.addEventListener('click', (e) => {
+            if (e.target === emailUnsubscribeModal) {
+                closeEmailUnsubscribeModal();
+            }
+        });
+        
+        emailUnsubscribeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitUnsubscribeSpinner.classList.remove('hidden');
+            
+            const email = document.getElementById('email-unsubscribe').value;
+            
+            try {
+                const response = await fetch(`/unsubscribe/${email}`, {
+                    method: 'DELETE'
+                });
+                
+                submitUnsubscribeSpinner.classList.add('hidden');
+                
+                if (response.ok) {
+                    unsubscribeFormMessage.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-300');
+                    unsubscribeFormMessage.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-300');
+                    unsubscribeFormMessage.innerHTML = '<i class="fas fa-check-circle mr-2"></i> You have been unsubscribed successfully!';
+                    
+                    setTimeout(() => {
+                        closeEmailModal();
+                    }, 2000);
+                } else {
+                    const errorData = await response.json();
+                    unsubscribeFormMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-300');
+                    unsubscribeFormMessage.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-300');
+                    unsubscribeFormMessage.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> ${errorData.detail || 'An error occurred. Please try again.'}`;
+                }
+            } catch (error) {
+                submitUnsubscribeSpinner.classList.add('hidden');
+                
+                unsubscribeFormMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-300');
+                unsubscribeFormMessage.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-300');
+                unsubscribeFormMessage.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i> Network error. Please check your connection and try again.';
             }
         });
     </script>

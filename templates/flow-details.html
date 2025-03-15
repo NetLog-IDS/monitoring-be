@@ -185,6 +185,10 @@
                                     <td class="p-3 text-sm">{{ flow.timestamp }}</td>
                                 </tr>
                                 <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Duration</td>
+                                    <td class="p-3 text-sm">{{ flow.duration / 1000000 }} seconds</td>
+                                </tr>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
                                     <td class="p-3 text-sm font-medium bg-gray-50 dark:bg-gray-700/50">Source IP</td>
                                     <td class="p-3 text-sm flex items-center">
                                         {{ flow.srcIp }}
