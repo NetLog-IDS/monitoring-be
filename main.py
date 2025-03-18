@@ -16,7 +16,7 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 KAFKA_BROKER = os.getenv("KAFKA_BROKER")
-TOPICS = ["network-traffic", "intrusion", "network-flows"]
+TOPICS = ["network-traffic", "DOS","PORT_SCAN", "network-flows"]
 
 manager = ConnectionManager()
 
@@ -29,23 +29,6 @@ async def startup_event():
 async def home(request: Request):
     intrusions = get_intrusion_detection_results(10)
     return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
-
-@app.get("/details/{flow_id}/{prediction}")
-async def flow_details(request: Request, flow_id: str = None, prediction: str = None):
-    flow = get_network_flows_with_fid(flow_id)
-    if not flow:
-       raise HTTPException(status_code=404, detail="Flow not found")
-    packets = get_network_packets_for_flow(flow.timestamp, flow.timestamp + timedelta(seconds=flow.duration//1_000_000), flow.srcIp, flow.srcPort, flow.dstIp, flow.dstPort)
-    if not packets:
-       raise HTTPException(status_code=404, detail="Packets not found")
-    packets_as_dict = []
-    for packet in packets:
-        packet_dict = packet.__dict__
-        print(packet_dict['timestamp'])
-        packet_dict['timestamp'] = packet_dict['timestamp'].strftime("%d/%m/%Y %H:%M:%S")
-        packet_dict.pop('_sa_instance_state', None)
-        packets_as_dict.append(packet_dict)
-    return templates.TemplateResponse("flow-details.html", {"request": request, "flow": flow.__dict__, "packets": packets_as_dict, "prediction": prediction})
 
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
@@ -60,19 +43,16 @@ async def consume_from_kafka():
             elif topic == "network-flows":
                 create_network_flows(values)
             else:
-                create_intrusion_detection_result(values)
+                create_intrusion_detection_result(values, topic)
                 await broadcast(data) 
-                if values["prediction"] != "Benign":
+                if values["STATUS"] != "NOT DETECTED":
                     emails_tuple = get_email_subscriptions()
                     email = [e[0] for e in emails_tuple]
                     body = {
-                        "prediction": values["prediction"],
-                        "fid": values["fid"],
-                        "timestamp": datetime.now(),
-                        "srcIp": values["fid"].split("-")[0],
-                        "srcPort": values["fid"].split("-")[2],
-                        "dstIp": values["fid"].split("-")[1],
-                        "dstPort": values["fid"].split("-")[3]
+                        "prediction": topic,
+                        "timestamp": values['TIMESTAMP_START'],
+                        "srcIp":values['IP_SRC'],
+                        "timestamp_end":values['TIMESTAMP_END']
                     }
                     asyncio.create_task(send_email({"email":email,"body": body}))
     finally:

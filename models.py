@@ -17,12 +17,12 @@ class NetworkPacket(Base):
     dstPort = Column(Integer)
     layers = Column(JSONB) 
 
-class IntrusionPrediction(Base):
-    __tablename__ = "intrusion_predictions"
-    uid = Column(Integer, primary_key=True, autoincrement=True)
-    prediction = Column(String)
-    fid = Column(String)
-    timestamp = Column(TIMESTAMP, server_default=func.now(), index=True)
+# class IntrusionPrediction(Base):
+#     __tablename__ = "intrusion_predictions"
+#     uid = Column(Integer, primary_key=True, autoincrement=True)
+#     prediction = Column(String)
+#     fid = Column(String)
+#     timestamp = Column(TIMESTAMP, server_default=func.now(), index=True)
 
 class NetworkFlow(Base):
     __tablename__ = "network_flows"
@@ -39,3 +39,19 @@ class NetworkFlow(Base):
 class Email(Base):
     __tablename__ = "emails"
     email = Column(String, primary_key=True)
+
+class DosPrediction(Base):
+    __tablename__ = "dos_predictions"
+    uid = Column(Integer, primary_key=True, autoincrement=True)
+    ip_src = Column(String)
+    status = Column(String)
+    timestamp_start = Column(TIMESTAMP, index=True)
+    timestamp_end = Column(TIMESTAMP, index=True)
+
+class PortScanPrediction(Base):
+    __tablename__ = "portscan_predictions"
+    uid = Column(Integer, primary_key=True, autoincrement=True)
+    ip_src = Column(String)
+    status = Column(String)
+    timestamp_start = Column(TIMESTAMP, index=True)
+    timestamp_end = Column(TIMESTAMP, index=True)
