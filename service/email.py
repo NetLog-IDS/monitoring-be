@@ -20,4 +20,6 @@ async def get_email_subscriptions():
 
 async def delete_email_subscription(email: str):
     result = await email_collection.delete_many({"email": email})
+    if(result.deleted_count == 0):
+        raise Exception("Email not found")
     return result.deleted_count

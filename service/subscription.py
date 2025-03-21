@@ -17,8 +17,11 @@ conf = ConnectionConfig(
 )
 
 async def send_email(topic, values) -> None:  
-    emails_tuple = get_email_subscriptions()
-    email = [e[0] for e in emails_tuple]
+    emails_dict = await get_email_subscriptions()
+
+    if len(emails_dict) == 0:
+        return  
+    email = [e['email'] for e in emails_dict]
     body = {
         "prediction": topic,
         "timestamp": values['TIMESTAMP_START'],

@@ -3,6 +3,10 @@ from database.database import get_database
 db = get_database()
 intrusion_collection = db["intrusion"]
 
+async def create_intrusion_detection_batch(docs):
+    result = await intrusion_collection.insert_many(docs)
+    return {"inserted_id": str(result.inserted_ids)}
+
 async def create_intrusion_detection_result(raw: dict, topic: str):
     data = raw.copy()
     data["topic"] = topic
@@ -18,3 +22,5 @@ async def get_intrusion_detection_results(limit: int = 10):
         results.append(doc)
     
     return results
+
+
