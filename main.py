@@ -1,15 +1,18 @@
 from aiokafka import AIOKafkaConsumer
 import asyncio
 import json
-from fastapi import FastAPI, Form, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Form, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from websocket import ConnectionManager
-from subscription import send_email
-from crud import *
+from websocket.websocket import ConnectionManager
+from service.subscription import send_email
+from service.intrusions import create_intrusion_detection_result, get_intrusion_detection_results
+from service.flows import *
+from service.packets import *
+from service.email import *
 from dotenv import load_dotenv
 import os
-from datetime import datetime, timedelta
+import time
 
 load_dotenv(override=True)
 app = FastAPI()
@@ -27,7 +30,8 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    intrusions = get_intrusion_detection_results(10)
+    print("Request")
+    intrusions = await get_intrusion_detection_results(10)
     return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
 
 async def consume_from_kafka():
@@ -39,22 +43,17 @@ async def consume_from_kafka():
             topic = msg.topic
             data = {"topic": topic, "value": values}
             if topic == "network-traffic":
-                create_network_packet(values)
+                values['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['timestamp']) // 1_000_000))
+                await create_network_packet(values)
             elif topic == "network-flows":
-                create_network_flows(values)
+                await create_network_flows(values)
             else:
-                create_intrusion_detection_result(values, topic)
+                values['TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_START']) // 1_000_000))
+                values['TIMESTAMP_END'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_END']) // 1_000_000))
+                await create_intrusion_detection_result(values, topic)
                 await broadcast(data) 
                 if values["STATUS"] != "NOT DETECTED":
-                    emails_tuple = get_email_subscriptions()
-                    email = [e[0] for e in emails_tuple]
-                    body = {
-                        "prediction": topic,
-                        "timestamp": values['TIMESTAMP_START'],
-                        "srcIp":values['IP_SRC'],
-                        "timestamp_end":values['TIMESTAMP_END']
-                    }
-                    asyncio.create_task(send_email({"email":email,"body": body}))
+                    asyncio.create_task(send_email(topic, values))
     finally:
         await consumer.stop()
 
