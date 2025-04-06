@@ -118,39 +118,6 @@ async def intrusion_worker():
                 await flush_intrusions(buffer)
                 buffer = []
 
-async def intrusion_worker():
-    buffer = []
-    while True:
-        try:
-            item = await asyncio.wait_for(intrusion_queue.get(), timeout=BATCH_INTERVAL)
-            buffer.append(item)
-            
-            if len(buffer) >= BATCH_SIZE:
-                await flush_intrusions(buffer)
-                buffer = []
-                
-        except asyncio.TimeoutError:
-            if buffer:
-                await flush_intrusions(buffer)
-                buffer = []
-
-async def intrusion_worker():
-    buffer = []
-    while True:
-        try:
-            item = await asyncio.wait_for(intrusion_queue.get(), timeout=BATCH_INTERVAL)
-            buffer.append(item)
-            
-            if len(buffer) >= BATCH_SIZE:
-                await flush_intrusions(buffer)
-                buffer = []
-                
-        except asyncio.TimeoutError:
-            if buffer:
-                await flush_intrusions(buffer)
-                buffer = []
-
-
 async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
