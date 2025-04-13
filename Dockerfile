@@ -11,9 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    libsnappy-dev \
     && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get install libsnappy-dev
 
 # Copy requirements first for caching
 COPY requirements.txt .
