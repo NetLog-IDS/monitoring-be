@@ -16,6 +16,7 @@ import os
 import time
 import datetime
 from fastapi.responses import JSONResponse
+from datetime import datetime, timezone
 load_dotenv(override=True)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -74,19 +75,16 @@ async def consume_from_kafka():
         async for msg in consumer:
             values = json.loads(msg.value.decode("utf-8"))
             topic = msg.topic
-            data = {"topic": topic, "value": values}
             if topic == "network-traffic":
-                values['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['timestamp']) // 1_000_000))
-                values['sniff_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['sniff_time']) // 1_000_000))
+                values['timestamp'] = int(values['timestamp']) // 1_000_000
+                values['sniff_time'] = int(values['sniff_time']) // 1_000_000
                 await packets_queue.put((values, topic))
-                # await create_network_packet(values)
             elif topic == "network-flows":
                 await flows_queue.put((values, topic))
-                # await create_network_flows(values)
             else:
-                values['TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_START']) // 1_000_000))
-                values['TIMESTAMP_END'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_END']) // 1_000_000))
-                values['SNIFF_TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['SNIFF_TIMESTAMP_START']) // 1_000_000))
+                values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
+                values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
+                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
                 await intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()
@@ -186,7 +184,8 @@ async def flush_intrusions(buffer):
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
-        data['MONITORING_TIME'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        data['MONITORING_TIME'] = int(datetime.now(timezone.utc).timestamp())
+        data['TIME_DIFF_SECONDS'] = data['MONITORING_TIME'] - data['SNIFF_TIMESTAMP_START']
         docs.append(data)
         broadcasts.append({"topic": topic, "value": values})
         if values["STATUS"] != "NOT DETECTED":
