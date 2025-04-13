@@ -181,7 +181,7 @@ async def flows_worker():
 async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
-    email_tasks = []
+    # email_tasks = []
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
@@ -189,8 +189,8 @@ async def flush_intrusions(buffer):
         data['TIME_DIFF_SECONDS'] = data['MONITORING_TIME'] - data['SNIFF_TIMESTAMP_START']
         docs.append(data)
         broadcasts.append({"topic": topic, "value": values})
-        if values["STATUS"] != "NOT DETECTED":
-            email_tasks.append(send_email(topic, values))
+        # if values["STATUS"] != "NOT DETECTED":
+            # email_tasks.append(send_email(topic, values))
     
     await create_intrusion_detection_batch(docs)
     
