@@ -68,7 +68,10 @@ async def delete_intrusions(request: Request):
     return {"message": "Intrusions deleted successfully!"}
 
 async def consume_from_kafka():
-    consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id=f"fastapi-group-{uuid.uuid4()}")
+    consumer = AIOKafkaConsumer(*TOPICS, 
+                                bootstrap_servers=KAFKA_BROKER, 
+                                group_id=f"fastapi-group-{uuid.uuid4()}",
+                                auto_offset_reset="earliest")
     await consumer.start()
     try:
         async for msg in consumer:
