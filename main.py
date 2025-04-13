@@ -13,7 +13,7 @@ from service.packets import *
 from service.email import *
 from dotenv import load_dotenv
 import os
-import time
+import uuid
 import datetime
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
@@ -68,7 +68,7 @@ async def delete_intrusions(request: Request):
     return {"message": "Intrusions deleted successfully!"}
 
 async def consume_from_kafka():
-    consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
+    consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id=f"fastapi-group-{uuid.uuid4()}")
     await consumer.start()
     try:
         async for msg in consumer:
