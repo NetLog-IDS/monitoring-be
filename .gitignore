@@ -3,3 +3,4 @@ __pycache__/
 .env
 contoh.json
 contoh.txt
+producer.py

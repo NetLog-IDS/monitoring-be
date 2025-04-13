@@ -181,6 +181,7 @@
                 <table id="intrusion-table" class="w-full table-auto">
                     <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
                         <tr>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time Entered</th>
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source IP</th>
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Start Timestamp</th>
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">End Timestamp</th>
@@ -189,28 +190,16 @@
                         </tr>
                     </thead>
                     <tbody id="intrusion-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for intrusion in intrusions.dos %}
+                        {% for intrusion in intrusions %}
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">{{ intrusion.ip_src }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.timestamp_start }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.timestamp_end }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">DOS</td>
+                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">Old Data</td>
+                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">{{ intrusion.IP_SRC }}</td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.TIMESTAMP_START }}</td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.TIMESTAMP_END }}</td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.topic }}</td>
                             <td class="p-4 text-sm">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if intrusion.status != 'NOT DETECTED' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% endif %}">
-                                    {{ intrusion.status }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% for intrusion in intrusions.portscan %}
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">{{ intrusion.ip_src }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.timestamp_start }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.timestamp_end }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">PORT_SCAN</td>
-                            <td class="p-4 text-sm">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if intrusion.status != 'NOT DETECTED' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% endif %}">
-                                    {{ intrusion.status }}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if intrusion.STATUS != 'NOT DETECTED' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% endif %}">
+                                    {{ intrusion.STATUS }}
                                 </span>
                             </td>
                         </tr>
@@ -346,24 +335,26 @@
         let socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
         let isPaused = false;
         let notificationCount = 0;
-        let totalDosDetection = {{ intrusions.dos|list|length }};
-        let totalPortscanDetection = {{ intrusions.portscan|list|length }};
-        let intrusionCount = totalDosDetection - {{ intrusions.dos|selectattr('status', 'equalto', 'NOT DETECTED')|list|length }};
-        let benignCount = {{ intrusions.dos|selectattr('status', 'equalto', 'NOT DETECTED')|list|length }};
+        let totalDosDetection = {{ intrusions|selectattr('topic', 'equalto', 'DOS')|list|length }};
+        let totalPortscanDetection = {{ intrusions|selectattr('topic', 'equalto', 'PORTSCAN')|list|length }};
+        let intrusionCount = totalDosDetection - {{ intrusions|selectattr('topic', 'equalto', 'DOS')|selectattr('STATUS', 'equalto', 'NOT DETECTED')|list|length }};
+        let benignCount = {{ intrusions|selectattr('topic', 'equalto', 'PORTSCAN')|selectattr('STATUS', 'equalto', 'NOT DETECTED')|list|length }};
         let dosDetectionPerMinute = 0;
         let portscanDetectionPerMinute = 0;
         let lastMinuteDosFlow = 0;
         let lastMinutePortscanFlow = 0;
         let lastMinuteTime = Date.now();
+
         
         setInterval(() => {
             const now = Date.now();
-            const elapsedMinutes = (now - lastMinuteTime) / 60000;
+            const elapsedMinutes = (now - lastMinuteTime) / 1000;
             
             if (elapsedMinutes >= 1) {
                 dosDetectionPerMinute = Math.round(lastMinuteDosFlow / elapsedMinutes);
                 portscanDetectionPerMinute = Math.round(lastMinutePortscanFlow / elapsedMinutes);
                 lastMinuteDosFlow = 0;
+                lastMinutePortscanFlow = 0;
                 lastMinuteTime = now;
             }
             
@@ -372,13 +363,8 @@
             document.getElementById('total-dos').textContent = "DoS: " + totalDosDetection;
             document.getElementById('total-portscan').textContent = "PortScan: " + totalPortscanDetection;
             document.getElementById('total-intrusions').textContent = intrusionCount;
-            // document.getElementById('benign-count').textContent = benignCount;
             
-            // const intrusionPercentage = totalDosDetection > 0 ? Math.round((intrusionCount / totalDosDetection) * 100) : 0;
             const benignPercentage = totalDosDetection > 0 ? Math.round((benignCount / totalDosDetection) * 100) : 0;
-            
-            // document.getElementById('intrusion-percentage').innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i>${intrusionPercentage}% of total traffic`;
-            // document.getElementById('benign-percentage').innerHTML = `<i class="fas fa-check mr-1"></i>${benignPercentage}% of total traffic`;
             
             document.getElementById('last-update').innerHTML = `<i class="fas fa-clock mr-1"></i>Last update: ${new Date().toLocaleTimeString()}`;
         }, 1000);
@@ -410,7 +396,7 @@
             if (isPaused) return;
             
             let data = JSON.parse(event.data);
-            console.log(data);
+            
             
             if(data.topic === 'DOS'){
                 totalDosDetection++;
@@ -423,7 +409,7 @@
             
             if (data.value.STATUS !== 'NOT DETECTED') {
                 intrusionCount++;
-                showNotification(data.value);
+                showNotification(data.value, data.topic);
             } else {
                 benignCount++;
             }
@@ -450,6 +436,7 @@
             }
             
             row.innerHTML = `
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${timestamp}</td>
                 <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${data.value.IP_SRC}</td>
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${data.value.TIMESTAMP_START}</td>
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${data.value.TIMESTAMP_END}</td>
@@ -460,7 +447,7 @@
                     </span>
                 </td>     
             `;
-            
+
             let table = document.getElementById("intrusion-table-body");
             table.prepend(row);
             
@@ -471,7 +458,7 @@
         };
 
         // Show notification
-        function showNotification(flow) {
+        function showNotification(flow, topic) {
             notificationCount++;
             
             const badge = document.getElementById('notification-badge');
@@ -479,7 +466,7 @@
             badge.classList.remove('hidden');
             
             const toast = document.getElementById('notification-toast');
-            document.getElementById('notification-message').textContent = `${flow.prediction} attack detected`;
+            document.getElementById('notification-message').textContent = `${topic} attack detected`;
             toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
             
             setTimeout(() => {

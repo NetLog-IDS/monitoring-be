@@ -1,16 +1,21 @@
 from aiokafka import AIOKafkaConsumer
 import asyncio
+from asyncio import Queue
 import json
-from fastapi import FastAPI, Form, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Form, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from websocket import ConnectionManager
-from subscription import send_email
-from crud import *
+from websocket.websocket import ConnectionManager
+from service.subscription import send_email
+from service.intrusions import *
+from service.flows import *
+from service.packets import *
+from service.email import *
 from dotenv import load_dotenv
 import os
-from datetime import datetime, timedelta
-
+import time
+import datetime
+from fastapi.responses import JSONResponse
 load_dotenv(override=True)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -18,17 +23,49 @@ templates = Jinja2Templates(directory="templates")
 KAFKA_BROKER = os.getenv("KAFKA_BROKER")
 TOPICS = ["network-traffic", "DOS","PORT_SCAN", "network-flows"]
 
+intrusion_queue = Queue()
+packets_queue = Queue()
+flows_queue = Queue()
+
+BATCH_SIZE = 50
+BATCH_INTERVAL = 0.1  # seconds
+
 manager = ConnectionManager()
 
 @app.on_event("startup")
 async def startup_event():
     """Start Kafka consumer on FastAPI startup"""
+    asyncio.create_task(intrusion_worker())
     asyncio.create_task(consume_from_kafka())
+    asyncio.create_task(packets_worker())
+    asyncio.create_task(flows_worker())
+
 
 @app.get("/")
 async def home(request: Request):
-    intrusions = get_intrusion_detection_results(10)
+    print("Request")
+    intrusions = await get_intrusion_detection_results(10)
     return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
+
+@app.get("/flows")
+async def flows(request: Request):
+    flows = await get_network_flows()
+    return JSONResponse(content=flows)
+
+@app.get("/packets")
+async def packets(request: Request):
+    packets = await get_network_packets()
+    return JSONResponse(content=packets)
+
+@app.get("/intrusions")
+async def intrusions(request: Request):
+    intrusions = await get_all_intrusion_results()
+    return JSONResponse(content=intrusions)
+
+@app.get("/intrusions/delete")
+async def delete_intrusions(request: Request):
+    await delete_all_intrusion_results()
+    return {"message": "Intrusions deleted successfully!"}
 
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
@@ -39,22 +76,18 @@ async def consume_from_kafka():
             topic = msg.topic
             data = {"topic": topic, "value": values}
             if topic == "network-traffic":
-                create_network_packet(values)
+                values['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['timestamp']) // 1_000_000))
+                values['sniff_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['sniff_time']) // 1_000_000))
+                await packets_queue.put((values, topic))
+                # await create_network_packet(values)
             elif topic == "network-flows":
-                create_network_flows(values)
+                await flows_queue.put((values, topic))
+                # await create_network_flows(values)
             else:
-                create_intrusion_detection_result(values, topic)
-                await broadcast(data) 
-                if values["STATUS"] != "NOT DETECTED":
-                    emails_tuple = get_email_subscriptions()
-                    email = [e[0] for e in emails_tuple]
-                    body = {
-                        "prediction": topic,
-                        "timestamp": values['TIMESTAMP_START'],
-                        "srcIp":values['IP_SRC'],
-                        "timestamp_end":values['TIMESTAMP_END']
-                    }
-                    asyncio.create_task(send_email({"email":email,"body": body}))
+                values['TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_START']) // 1_000_000))
+                values['TIMESTAMP_END'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_END']) // 1_000_000))
+                values['SNIFF_TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['SNIFF_TIMESTAMP_START']) // 1_000_000))
+                await intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()
 
@@ -80,7 +113,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post('/subscribe')
 async def subscribe(email: str = Form(...)):
     try:
-        create_email_subscription(email)
+        await create_email_subscription(email)
         return {"message": "Subscribed successfully!"}
     except Exception as e:
         if str(e).find("UniqueViolation") != -1:
@@ -91,10 +124,96 @@ async def subscribe(email: str = Form(...)):
 @app.delete('/unsubscribe/{email}')
 async def unsubscribe(email: str = None):
     try:
-        delete_email_subscription(email)
+        await delete_email_subscription(email)
         return {"message": "Unsubscribed successfully!"}
     except Exception as e:
         if str(e).find("Email not found") != -1:
             raise HTTPException(status_code=404, detail="Email not found!")
         else:
             raise HTTPException(status_code=400, detail=str(e)) 
+        
+async def intrusion_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+            
+            if len(buffer) >= BATCH_SIZE:
+                await flush_intrusions(buffer)
+                buffer = []
+                
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_intrusions(buffer)
+                buffer = []
+
+async def packets_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(packets_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+            
+            if len(buffer) >= BATCH_SIZE:
+                await flush_packets(buffer)
+                buffer = []
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_packets(buffer)
+                buffer = []
+
+async def flows_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(flows_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+
+            if len(buffer) >= BATCH_SIZE:
+                await flush_flows(buffer)
+                buffer = []
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_flows(buffer)
+                buffer = []
+
+async def flush_intrusions(buffer):
+    docs = []
+    broadcasts = []
+    email_tasks = []
+    print("Intrusion flushed!", buffer)
+    for values, topic in buffer:
+        data = values.copy()
+        data["topic"] = topic
+        data['MONITORING_TIME'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        docs.append(data)
+        broadcasts.append({"topic": topic, "value": values})
+        if values["STATUS"] != "NOT DETECTED":
+            email_tasks.append(send_email(topic, values))
+    
+    await create_intrusion_detection_batch(docs)
+    
+    await asyncio.gather(*[broadcast(b) for b in broadcasts])
+    
+    asyncio.gather(*email_tasks)
+
+async def flush_flows(buffer):
+    docs = []
+
+    for values, _ in buffer:
+        data = values.copy()
+        # data["topic"] = topic
+        docs.append(data)
+    
+    await create_network_flows_batch(docs)
+
+async def flush_packets(buffer):
+    docs = []
+    
+    for values, _ in buffer:
+        data = values.copy()
+        # data["topic"] = topic
+        docs.append(data)
+
+    await create_network_packets_batch(docs)
