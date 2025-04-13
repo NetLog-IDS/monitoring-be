@@ -49,7 +49,7 @@
                     </tr>
                     <tr>
                         <td width="40%" bgcolor="#f8fafc" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-                            <strong>Source IP</strong>
+                            <strong>{% if topic == 'DOS' %}Destination IP{% else %}Source IP{% endif %}</strong>
                         </td>
                         <td width="60%" style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">
                             {{ srcIp }}
@@ -82,27 +82,6 @@
                 </table>
             </td>
         </tr>
-
-        <!-- Recommended Actions -->
-        <!-- <tr>
-            <td style="padding: 0 20px 20px 20px;">
-                <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                    <tr>
-                        <td>
-                            <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #333333;">Recommended Actions</h2>
-                            <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; line-height: 1.5; color: #333333;">
-                                <li style="margin-bottom: 10px;">Investigate the source IP address for suspicious activity</li>
-                                <li style="margin-bottom: 10px;">Check if any systems at the destination IP were compromised</li>
-                                <li style="margin-bottom: 10px;">Consider temporarily blocking the source IP if malicious intent is confirmed</li>
-                                <li style="margin-bottom: 10px;">Update your firewall rules if necessary</li>
-                            </ul>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr> -->
-
-        <!-- Footer -->
         <tr>
             <td bgcolor="#2d3748" style="padding: 20px; color: white;">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%">

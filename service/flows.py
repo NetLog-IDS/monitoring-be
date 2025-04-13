@@ -8,7 +8,7 @@ async def create_network_flows(data: dict):
     return {"inserted_id": str(result.inserted_id)}
 
 async def get_network_flows(limit: int = 10):
-    cursor = network_flows_collection.find().sort("_id", -1).limit(limit)
+    cursor = network_flows_collection.find().sort("_id", -1)
     
     results = []
     async for doc in cursor:

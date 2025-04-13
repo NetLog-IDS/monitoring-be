@@ -7,8 +7,8 @@ async def create_network_packet(data: dict):
     result = await network_packets_collection.insert_one(data)
     return {"inserted_id": str(result.inserted_id)}
 
-async def get_network_packets(limit: int = 10):
-    cursor = network_packets_collection.find().sort("_id", -1).limit(limit)
+async def get_network_packets():
+    cursor = network_packets_collection.find().sort("timestamp", -1)
     
     results = []
     async for doc in cursor:

@@ -23,4 +23,17 @@ async def get_intrusion_detection_results(limit: int = 10):
     
     return results
 
+async def get_all_intrusion_results():
+    cursor = intrusion_collection.find().sort("MONITORING_TIME", -1)
+    
+    results = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        results.append(doc)
+    
+    return results
+
+async def delete_all_intrusion_results():
+    await intrusion_collection.delete_many({})
+
 

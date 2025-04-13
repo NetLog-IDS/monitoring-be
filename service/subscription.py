@@ -22,12 +22,20 @@ async def send_email(topic, values) -> None:
     if len(emails_dict) == 0:
         return  
     email = [e['email'] for e in emails_dict]
-    body = {
-        "prediction": topic,
-        "timestamp": values['TIMESTAMP_START'],
-        "srcIp":values['IP_SRC'],
-        "timestamp_end":values['TIMESTAMP_END']
-    }  
+    if topic == "DOS":
+        body = {
+            "prediction": topic,
+            "timestamp": values['TIMESTAMP_START'],
+            "srcIp":values['IP_DST'],
+            "timestamp_end":values['TIMESTAMP_END']
+        }  
+    elif topic == "PORT_SCAN":
+        body = {
+            "prediction": topic,
+            "timestamp": values['TIMESTAMP_START'],
+            "srcIp":values['IP_SRC'],
+            "timestamp_end":values['TIMESTAMP_END']
+        }
     message = MessageSchema(
         subject="Intrusion Detected!",
         recipients=email,
@@ -37,4 +45,5 @@ async def send_email(topic, values) -> None:
 
     fm = FastMail(conf)
     await fm.send_message(message, template_name="email.html")
+    print("Email sent!")
     return

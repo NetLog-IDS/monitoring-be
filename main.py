@@ -7,14 +7,15 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from websocket.websocket import ConnectionManager
 from service.subscription import send_email
-from service.intrusions import create_intrusion_detection_batch, get_intrusion_detection_results
+from service.intrusions import *
 from service.flows import *
 from service.packets import *
 from service.email import *
 from dotenv import load_dotenv
 import os
 import time
-
+import datetime
+from fastapi.responses import JSONResponse
 load_dotenv(override=True)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -46,6 +47,26 @@ async def home(request: Request):
     intrusions = await get_intrusion_detection_results(10)
     return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
 
+@app.get("/flows")
+async def flows(request: Request):
+    flows = await get_network_flows()
+    return JSONResponse(content=flows)
+
+@app.get("/packets")
+async def packets(request: Request):
+    packets = await get_network_packets()
+    return JSONResponse(content=packets)
+
+@app.get("/intrusions")
+async def intrusions(request: Request):
+    intrusions = await get_all_intrusion_results()
+    return JSONResponse(content=intrusions)
+
+@app.get("/intrusions/delete")
+async def delete_intrusions(request: Request):
+    await delete_all_intrusion_results()
+    return {"message": "Intrusions deleted successfully!"}
+
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, bootstrap_servers=KAFKA_BROKER, group_id="fastapi-group")
     await consumer.start()
@@ -56,14 +77,16 @@ async def consume_from_kafka():
             data = {"topic": topic, "value": values}
             if topic == "network-traffic":
                 values['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['timestamp']) // 1_000_000))
-                await packets_queue.put(data)
+                values['sniff_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['sniff_time']) // 1_000_000))
+                await packets_queue.put((values, topic))
                 # await create_network_packet(values)
             elif topic == "network-flows":
-                await flows_queue.put(data)
+                await flows_queue.put((values, topic))
                 # await create_network_flows(values)
             else:
                 values['TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_START']) // 1_000_000))
                 values['TIMESTAMP_END'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_END']) // 1_000_000))
+                values['SNIFF_TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['SNIFF_TIMESTAMP_START']) // 1_000_000))
                 await intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()
@@ -159,9 +182,11 @@ async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
     email_tasks = []
+    print("Intrusion flushed!", buffer)
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
+        data['MONITORING_TIME'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         docs.append(data)
         broadcasts.append({"topic": topic, "value": values})
         if values["STATUS"] != "NOT DETECTED":
