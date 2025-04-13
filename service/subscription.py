@@ -45,5 +45,4 @@ async def send_email(topic, values) -> None:
 
     fm = FastMail(conf)
     await fm.send_message(message, template_name="email.html")
-    print("Email sent!")
     return

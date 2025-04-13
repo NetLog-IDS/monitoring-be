@@ -44,7 +44,6 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    print("Request")
     intrusions = await get_intrusion_detection_results(10)
     return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
 
@@ -180,7 +179,6 @@ async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
     email_tasks = []
-    print("Intrusion flushed!", buffer)
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
