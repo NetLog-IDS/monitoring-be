@@ -28,7 +28,7 @@ intrusion_queue = Queue()
 packets_queue = Queue()
 flows_queue = Queue()
 
-BATCH_SIZE = 50
+BATCH_SIZE = 5000
 BATCH_INTERVAL = 0.1  # seconds
 
 manager = ConnectionManager()
@@ -193,7 +193,7 @@ async def flush_intrusions(buffer):
     
     await asyncio.gather(*[broadcast(b) for b in broadcasts])
     
-    asyncio.gather(*email_tasks)
+    # asyncio.gather(*email_tasks)
 
 async def flush_flows(buffer):
     docs = []
