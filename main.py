@@ -23,6 +23,8 @@ KAFKA_BROKER = os.getenv("KAFKA_BROKER")
 TOPICS = ["network-traffic", "DOS","PORT_SCAN", "network-flows"]
 
 intrusion_queue = Queue()
+packets_queue = Queue()
+flows_queue = Queue()
 
 BATCH_SIZE = 50
 BATCH_INTERVAL = 0.1  # seconds
@@ -34,6 +36,9 @@ async def startup_event():
     """Start Kafka consumer on FastAPI startup"""
     asyncio.create_task(intrusion_worker())
     asyncio.create_task(consume_from_kafka())
+    asyncio.create_task(packets_worker())
+    asyncio.create_task(flows_worker())
+
 
 @app.get("/")
 async def home(request: Request):
@@ -51,9 +56,11 @@ async def consume_from_kafka():
             data = {"topic": topic, "value": values}
             if topic == "network-traffic":
                 values['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['timestamp']) // 1_000_000))
-                await create_network_packet(values)
+                await packets_queue.put(data)
+                # await create_network_packet(values)
             elif topic == "network-flows":
-                await create_network_flows(values)
+                await flows_queue.put(data)
+                # await create_network_flows(values)
             else:
                 values['TIMESTAMP_START'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_START']) // 1_000_000))
                 values['TIMESTAMP_END'] = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(values['TIMESTAMP_END']) // 1_000_000))
@@ -118,21 +125,70 @@ async def intrusion_worker():
                 await flush_intrusions(buffer)
                 buffer = []
 
+async def packets_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(packets_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+            
+            if len(buffer) >= BATCH_SIZE:
+                await flush_packets(buffer)
+                buffer = []
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_packets(buffer)
+                buffer = []
+
+async def flows_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(flows_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+
+            if len(buffer) >= BATCH_SIZE:
+                await flush_flows(buffer)
+                buffer = []
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_flows(buffer)
+                buffer = []
+
 async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
+    email_tasks = []
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
         docs.append(data)
         broadcasts.append({"topic": topic, "value": values})
+        if values["STATUS"] != "NOT DETECTED":
+            email_tasks.append(send_email(topic, values))
     
     await create_intrusion_detection_batch(docs)
     
     await asyncio.gather(*[broadcast(b) for b in broadcasts])
     
-    email_tasks = []
-    for values, topic in buffer:
-        if values["STATUS"] != "NOT DETECTED":
-            email_tasks.append(send_email(topic, values))
     asyncio.gather(*email_tasks)
+
+async def flush_flows(buffer):
+    docs = []
+
+    for values, _ in buffer:
+        data = values.copy()
+        # data["topic"] = topic
+        docs.append(data)
+    
+    await create_network_flows_batch(docs)
+
+async def flush_packets(buffer):
+    docs = []
+    
+    for values, _ in buffer:
+        data = values.copy()
+        # data["topic"] = topic
+        docs.append(data)
+
+    await create_network_packets_batch(docs)

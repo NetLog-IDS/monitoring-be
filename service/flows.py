@@ -16,3 +16,7 @@ async def get_network_flows(limit: int = 10):
         results.append(doc)
     
     return results
+
+async def create_network_flows_batch(docs):
+    result = await network_flows_collection.insert_many(docs)
+    return {"inserted_id": str(result.inserted_ids)}
