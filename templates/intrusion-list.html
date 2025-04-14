@@ -116,22 +116,8 @@
                         <i class="fas fa-bug text-red-500"></i>
                     </div>
                 </div>
-                <!-- <p id="intrusion-percentage" class="text-red-500 text-sm mt-4"><i class="fas fa-exclamation-triangle mr-1"></i>0% of total traffic</p> -->
             </div>
             
-            <!-- <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Benign Traffic</p>
-                        <h3 id="benign-count" class="text-2xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
-                    </div>
-                    <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-                        <i class="fas fa-check-circle text-green-500"></i>
-                    </div>
-                </div>
-                <p id="benign-percentage" class="text-green-500 text-sm mt-4"><i class="fas fa-check mr-1"></i>
-                {{ (intrusions.dos|selectattr('prediction', 'equalto', 'Benign')|list|length / intrusions|length * 100 if intrusions|length > 0 else 0) | round(2) }}% of total traffic</p>
-            </div> -->
             
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
                 <div class="flex justify-between items-start">
@@ -335,10 +321,10 @@
         let socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
         let isPaused = false;
         let notificationCount = 0;
-        let totalDosDetection = {{ intrusions|selectattr('topic', 'equalto', 'DOS')|list|length }};
-        let totalPortscanDetection = {{ intrusions|selectattr('topic', 'equalto', 'PORTSCAN')|list|length }};
-        let intrusionCount = totalDosDetection - {{ intrusions|selectattr('topic', 'equalto', 'DOS')|selectattr('STATUS', 'equalto', 'NOT DETECTED')|list|length }};
-        let benignCount = {{ intrusions|selectattr('topic', 'equalto', 'PORTSCAN')|selectattr('STATUS', 'equalto', 'NOT DETECTED')|list|length }};
+        let totalDosDetection = 0;
+        let totalPortscanDetection = 0;
+        let intrusionCount = 0;
+        let benignCount = 0;
         let dosDetectionPerMinute = 0;
         let portscanDetectionPerMinute = 0;
         let lastMinuteDosFlow = 0;

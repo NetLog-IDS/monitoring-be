@@ -46,8 +46,7 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    intrusions = await get_intrusion_detection_results(10)
-    return templates.TemplateResponse("intrusion-list.html", {"request": request, "intrusions": intrusions})
+    return templates.TemplateResponse("intrusion-list.html", {"request": request})
 
 @app.get("/flows")
 async def flows(request: Request):
@@ -58,10 +57,11 @@ async def flows(request: Request):
 async def packets(request: Request):
     packets = await get_network_packets()
     return JSONResponse(content=packets)
+    
 
 @app.get("/intrusions")
-async def intrusions(request: Request):
-    intrusions = await get_all_intrusion_results()
+async def intrusions(request: Request, detected: bool = None):
+    intrusions = await get_all_intrusion_results(detected=detected)
     return JSONResponse(content=intrusions)
 
 @app.get("/intrusions/delete")

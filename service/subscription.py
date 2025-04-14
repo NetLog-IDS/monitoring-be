@@ -22,7 +22,7 @@ async def send_email(topic, values) -> None:
     
     email = []
     for emails in emails_dict:
-        if curr_time - emails['last_sent'] > 30:
+        if curr_time - emails['last_sent'] > 30: # Setiap 30 detik ajaa
             email.append(emails['email'])
 
     if len(email) == 0:
