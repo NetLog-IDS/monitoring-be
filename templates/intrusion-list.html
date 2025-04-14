@@ -6,6 +6,8 @@
     <title>Network Intrusion Detection System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -89,28 +91,26 @@
     <!-- Main Content -->
     <div class="container mx-auto px-4 py-6">
         <!-- Dashboard Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-primary-500">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Detection</p>
-                        <h3 id="total-dos" class="text-2xl font-bold text-gray-800 dark:text-white mt-1">DoS: 0</h3>
-                        <p class="text-green-500 text-sm mt-4"><i class="fas fa-arrow-up mr-1"></i><span id="flow-dos">0</span> detections/min</p>
-                        <h3 id="total-portscan" class="text-2xl font-bold text-gray-800 dark:text-white mt-1">PortScan: 0</h3>
-                        <p class="text-green-500 text-sm mt-4"><i class="fas fa-arrow-up mr-1"></i><span id="flow-portscan">0</span> detections/min</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Detection Count</p>
+                        <h3 id="total-detection" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i><span id="detection-rate">0</span> detections/min</p>
                     </div>
                     <div class="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-full">
                         <i class="fas fa-network-wired text-primary-500 dark:text-primary-400"></i>
                     </div>
                 </div>
-                <!-- <p class="text-green-500 text-sm mt-4"><i class="fas fa-arrow-up mr-1"></i><span id="flow-dos">0</span> flows/min</p> -->
             </div>
             
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-red-500">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Intrusions Detected</p>
-                        <h3 id="total-intrusions" class="text-2xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">DoS Detected</p>
+                        <h3 id="total-dos" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i><span id="flow-dos">0</span> detections/min</p>
                     </div>
                     <div class="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
                         <i class="fas fa-bug text-red-500"></i>
@@ -118,18 +118,44 @@
                 </div>
             </div>
             
-            
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Connection Status</p>
-                        <h3 id="connection-status" class="text-2xl font-bold text-gray-800 dark:text-white mt-1">Connecting...</h3>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Port Scan Detected</p>
+                        <h3 id="total-portscan" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
+                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i><span id="flow-portscan">0</span> detections/min</p>
                     </div>
                     <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
-                        <i id="connection-icon" class="fas fa-plug text-yellow-500"></i>
+                        <i class="fas fa-search text-yellow-500"></i>
                     </div>
                 </div>
-                <p id="last-update" class="text-gray-500 dark:text-gray-400 text-sm mt-4"><i class="fas fa-clock mr-1"></i>Last update: Never</p>
+            </div>
+        </div>
+
+        <!-- Detection Trend Chart -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-line mr-2 text-primary-500 dark:text-primary-400"></i>
+                Detection Trends
+            </h2>
+            <div class="h-80">
+                <canvas id="detection-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div id="connection-icon-wrapper" class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
+                        <i id="connection-icon" class="fas fa-plug text-yellow-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Connection Status</p>
+                        <h3 id="connection-status" class="text-xl font-bold text-gray-800 dark:text-white">Connecting...</h3>
+                    </div>
+                </div>
+                <p id="last-update" class="text-gray-500 dark:text-gray-400 text-sm"><i class="fas fa-clock mr-1"></i>Last update: Never</p>
             </div>
         </div>
 
@@ -176,26 +202,13 @@
                         </tr>
                     </thead>
                     <tbody id="intrusion-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for intrusion in intrusions %}
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">Old Data</td>
-                            <td class="p-4 text-sm text-gray-900 dark:text-gray-200">{{ intrusion.IP_SRC }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.TIMESTAMP_START }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.TIMESTAMP_END }}</td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ intrusion.topic }}</td>
-                            <td class="p-4 text-sm">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if intrusion.STATUS != 'NOT DETECTED' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% endif %}">
-                                    {{ intrusion.STATUS }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        <!-- Table rows will be added dynamically -->
                     </tbody>
                 </table>
             </div>
 
             <!-- Empty State -->
-            <div id="empty-state" class="flex flex-col items-center justify-center py-12 px-4 {% if intrusions %}hidden{% endif %}">
+            <div id="empty-state" class="flex flex-col items-center justify-center py-12 px-4">
                 <div class="bg-gray-100 dark:bg-gray-700 p-6 rounded-full mb-4">
                     <i class="fas fa-stream text-4xl text-gray-400 dark:text-gray-500"></i>
                 </div>
@@ -315,42 +328,202 @@
         themeToggle.addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            
+            // Update chart colors when theme changes
+            updateChartTheme();
         });
+
+        // Initialize the detection chart
+        let detectionChart;
+        const maxDataPoints = 10; // Changed from 20 to 10 to limit to the 10 most recent points
+        const chartData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Total Detections',
+                    data: [],
+                    borderColor: '#0ea5e9', // primary-500
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'DoS Detections',
+                    data: [],
+                    borderColor: '#ef4444', // red-500
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'Port Scan Detections',
+                    data: [],
+                    borderColor: '#eab308', // yellow-500
+                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false
+                }
+            ]
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('detection-chart').getContext('2d');
+            
+            // Set chart options
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: {
+                            color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151',
+                            precision: 0 // Only show integers
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151',
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: document.documentElement.classList.contains('dark') ? '#374151' : 'white',
+                        titleColor: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#111827',
+                        bodyColor: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151',
+                        borderColor: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb',
+                        borderWidth: 1
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                animation: {
+                    duration: 500
+                }
+            };
+            
+            // Create the chart
+            detectionChart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: options
+            });
+        }
+
+        // Update chart theme when dark mode is toggled
+        function updateChartTheme() {
+            if (!detectionChart) return;
+            
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            // Update grid and text colors
+            detectionChart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            detectionChart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            detectionChart.options.scales.x.ticks.color = isDark ? '#e5e7eb' : '#374151';
+            detectionChart.options.scales.y.ticks.color = isDark ? '#e5e7eb' : '#374151';
+            
+            // Update legend colors
+            detectionChart.options.plugins.legend.labels.color = isDark ? '#e5e7eb' : '#374151';
+            
+            // Update tooltip colors
+            detectionChart.options.plugins.tooltip.backgroundColor = isDark ? '#374151' : 'white';
+            detectionChart.options.plugins.tooltip.titleColor = isDark ? '#e5e7eb' : '#111827';
+            detectionChart.options.plugins.tooltip.bodyColor = isDark ? '#e5e7eb' : '#374151';
+            detectionChart.options.plugins.tooltip.borderColor = isDark ? '#4b5563' : '#e5e7eb';
+            
+            detectionChart.update();
+        }
+
+        // Add data to the chart
+        function addChartData(totalDetections, dosDetections, portScanDetections) {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+            
+            // Add new data
+            chartData.labels.push(timeLabel);
+            chartData.datasets[0].data.push(totalDetections);
+            chartData.datasets[1].data.push(dosDetections);
+            chartData.datasets[2].data.push(portScanDetections);
+            
+            // Remove old data if we have more than maxDataPoints
+            if (chartData.labels.length > maxDataPoints) {
+                chartData.labels.shift();
+                chartData.datasets.forEach(dataset => {
+                    dataset.data.shift();
+                });
+            }
+            
+            // Update the chart
+            detectionChart.update();
+        }
+
+        // Initialize chart when the page loads
+        document.addEventListener('DOMContentLoaded', initChart);
 
         // WebSocket connection
         let socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
         let isPaused = false;
         let notificationCount = 0;
+        
+        // Statistics counters
+        let totalDetectionCount = 0;
         let totalDosDetection = 0;
         let totalPortscanDetection = 0;
-        let intrusionCount = 0;
-        let benignCount = 0;
+        
+        // Rate tracking
+        let detectionPerMinute = 0;
         let dosDetectionPerMinute = 0;
         let portscanDetectionPerMinute = 0;
+        let lastMinuteDetections = 0;
         let lastMinuteDosFlow = 0;
         let lastMinutePortscanFlow = 0;
         let lastMinuteTime = Date.now();
-
         
+        // Update statistics every second
         setInterval(() => {
             const now = Date.now();
-            const elapsedMinutes = (now - lastMinuteTime) / 1000;
+            const elapsedMinutes = (now - lastMinuteTime) / 60000;
             
             if (elapsedMinutes >= 1) {
+                detectionPerMinute = Math.round(lastMinuteDetections / elapsedMinutes);
                 dosDetectionPerMinute = Math.round(lastMinuteDosFlow / elapsedMinutes);
                 portscanDetectionPerMinute = Math.round(lastMinutePortscanFlow / elapsedMinutes);
+                
+                lastMinuteDetections = 0;
                 lastMinuteDosFlow = 0;
                 lastMinutePortscanFlow = 0;
                 lastMinuteTime = now;
             }
             
-            document.getElementById('flow-dos').textContent = "DoS: " + dosDetectionPerMinute;
-            document.getElementById('flow-portscan').textContent = "PortScan: " + portscanDetectionPerMinute;
-            document.getElementById('total-dos').textContent = "DoS: " + totalDosDetection;
-            document.getElementById('total-portscan').textContent = "PortScan: " + totalPortscanDetection;
-            document.getElementById('total-intrusions').textContent = intrusionCount;
-            
-            const benignPercentage = totalDosDetection > 0 ? Math.round((benignCount / totalDosDetection) * 100) : 0;
+            // Update UI with current statistics
+            document.getElementById('total-detection').textContent = totalDetectionCount;
+            document.getElementById('detection-rate').textContent = detectionPerMinute;
+            document.getElementById('total-dos').textContent = totalDosDetection;
+            document.getElementById('flow-dos').textContent = dosDetectionPerMinute;
+            document.getElementById('total-portscan').textContent = totalPortscanDetection;
+            document.getElementById('flow-portscan').textContent = portscanDetectionPerMinute;
             
             document.getElementById('last-update').innerHTML = `<i class="fas fa-clock mr-1"></i>Last update: ${new Date().toLocaleTimeString()}`;
         }, 1000);
@@ -359,21 +532,34 @@
             document.getElementById('connection-status').textContent = 'Connected';
             document.getElementById('connection-status').classList.remove('text-red-500');
             document.getElementById('connection-status').classList.add('text-green-500');
+            
             document.getElementById('connection-icon').classList.remove('text-yellow-500');
             document.getElementById('connection-icon').classList.add('text-green-500');
+            
+            document.getElementById('connection-icon-wrapper').classList.remove('bg-yellow-100', 'dark:bg-yellow-900/30');
+            document.getElementById('connection-icon-wrapper').classList.add('bg-green-100', 'dark:bg-green-900/30');
         };
 
         socket.onclose = function() {
             document.getElementById('connection-status').textContent = 'Disconnected';
             document.getElementById('connection-status').classList.remove('text-green-500');
             document.getElementById('connection-status').classList.add('text-red-500');
+            
             document.getElementById('connection-icon').classList.remove('text-green-500', 'text-yellow-500');
             document.getElementById('connection-icon').classList.add('text-red-500');
             
+            document.getElementById('connection-icon-wrapper').classList.remove('bg-green-100', 'dark:bg-green-900/30', 'bg-yellow-100', 'dark:bg-yellow-900/30');
+            document.getElementById('connection-icon-wrapper').classList.add('bg-red-100', 'dark:bg-red-900/30');
+            
             setTimeout(() => {
                 document.getElementById('connection-status').textContent = 'Reconnecting...';
+                
                 document.getElementById('connection-icon').classList.remove('text-red-500');
                 document.getElementById('connection-icon').classList.add('text-yellow-500');
+                
+                document.getElementById('connection-icon-wrapper').classList.remove('bg-red-100', 'dark:bg-red-900/30');
+                document.getElementById('connection-icon-wrapper').classList.add('bg-yellow-100', 'dark:bg-yellow-900/30');
+                
                 socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
             }, 5000);
         };
@@ -382,54 +568,86 @@
             if (isPaused) return;
             
             let data = JSON.parse(event.data);
+            console.log("Received data:", data);
             
-            
-            if(data.topic === 'DOS'){
-                totalDosDetection++;
-                lastMinuteDosFlow++;
-            } 
-            else if (data.topic === 'PORT_SCAN'){
-                totalPortscanDetection++;
-                lastMinutePortscanFlow++;
+            // Handle statistics data
+            if (data.pkt_cnt !== undefined) {
+                // This is statistics data
+                totalDetectionCount = data.pkt_cnt;
+                totalDosDetection = data.dos_cnt;
+                totalPortscanDetection = data.port_scan_cnt;
+                
+                // Update rate tracking
+                lastMinuteDetections++;
+                
+                // Update the chart with new data
+                addChartData(totalDetectionCount, totalDosDetection, totalPortscanDetection);
+                
+                document.getElementById('empty-state').classList.add('hidden');
+                return;
             }
             
-            if (data.value.STATUS !== 'NOT DETECTED') {
-                intrusionCount++;
-                showNotification(data.value, data.topic);
-            } else {
-                benignCount++;
+            // Handle detection result
+            if (data.topic && data.value) {
+                // This is a detection result
+                const detectionType = data.topic;
+                const detectionData = data.value;
+                
+                // Update counters based on detection type
+                if (detectionType === 'DOS') {
+                    lastMinuteDosFlow++;
+                } else if (detectionType === 'PORT_SCAN') {
+                    lastMinutePortscanFlow++;
+                }
+                
+                // Show notification for detected intrusions
+                if (detectionData.STATUS === 'DETECTED') {
+                    showNotification(detectionData, detectionType);
+                }
+                
+                document.getElementById('empty-state').classList.add('hidden');
+                
+                // Add to table
+                addDetectionToTable(detectionData, detectionType);
             }
-            
-            document.getElementById('empty-state').classList.add('hidden');
-            
-            const timestamp = new Date();
+        };
+
+        // Add detection to table
+        function addDetectionToTable(detection, type) {
+            const timestamp = new Date().toLocaleTimeString();
             
             let row = document.createElement("tr");
             row.classList.add("hover:bg-gray-50", "dark:hover:bg-gray-700", "transition-colors", "duration-150");
             
+            // Apply filter if active
             const filterType = document.getElementById('filter-type').value;
-            if (filterType === 'dos' && data.topic !== 'DOS') {
+            if (filterType === 'dos' && type !== 'DOS') {
                 row.classList.add('hidden');
-            } else if (filterType === 'portscan' && data.topic !== 'PORT_SCAN') {
+            } else if (filterType === 'portscan' && type !== 'PORT_SCAN') {
                 row.classList.add('hidden');
             }
             
-            if (data.value.STATUS !== 'NOT DETECTED') {
+            // Highlight detected intrusions
+            if (detection.STATUS === 'DETECTED') {
                 row.classList.add('bg-red-50', 'dark:bg-red-900/10', 'pulse-animation');
                 setTimeout(() => {
                     row.classList.remove('pulse-animation', 'bg-red-50', 'dark:bg-red-900/10');
                 }, 5000);
             }
             
+            // Format timestamps for better readability
+            const startTime = new Date(detection.TIMESTAMP_START * 1000).toLocaleString();
+            const endTime = new Date(detection.TIMESTAMP_END * 1000).toLocaleString();
+            
             row.innerHTML = `
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${timestamp}</td>
-                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${data.value.IP_SRC}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${data.value.TIMESTAMP_START}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${data.value.TIMESTAMP_END}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${data.topic}</td>
+                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${detection.IP_SRC}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${startTime}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${endTime}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${type}</td>
                 <td class="p-4 text-sm">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${data.value.STATUS !== 'NOT DETECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}">
-                        ${data.value.STATUS}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${detection.STATUS === 'DETECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}">
+                        ${detection.STATUS}
                     </span>
                 </td>     
             `;
@@ -437,6 +655,7 @@
             let table = document.getElementById("intrusion-table-body");
             table.prepend(row);
             
+            // Limit table rows for performance
             const maxRows = 100;
             while (table.children.length > maxRows) {
                 table.removeChild(table.lastChild);
@@ -444,7 +663,7 @@
         };
 
         // Show notification
-        function showNotification(flow, topic) {
+        function showNotification(detection, type) {
             notificationCount++;
             
             const badge = document.getElementById('notification-badge');
@@ -452,7 +671,7 @@
             badge.classList.remove('hidden');
             
             const toast = document.getElementById('notification-toast');
-            document.getElementById('notification-message').textContent = `${topic} attack detected`;
+            document.getElementById('notification-message').textContent = `${type} attack detected from ${detection.IP_SRC}`;
             toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
             
             setTimeout(() => {
@@ -499,9 +718,9 @@
             const rows = document.getElementById('intrusion-table-body').querySelectorAll('tr');
             
             rows.forEach(row => {
-                const predictionCell = row.querySelector('td:nth-child(4)');
-                const isDos = predictionCell && predictionCell.textContent.trim() === 'DOS';
-                const isPortScan = predictionCell && predictionCell.textContent.trim() === 'PORT_SCAN';
+                const typeCell = row.querySelector('td:nth-child(5)');
+                const isDos = typeCell && typeCell.textContent.trim() === 'DOS';
+                const isPortScan = typeCell && typeCell.textContent.trim() === 'PORT_SCAN';
                 
                 if (filterType === 'all') {
                     row.classList.remove('hidden');
@@ -598,7 +817,7 @@
             }
         });
 
-        // Unsubscribe
+        // Unsubscribe 
         const emailUnsubscribeModal = document.getElementById('unsubscribe-modal');
         const openEmailUnsubscribeModalBtn = document.getElementById('open-unsubscribe-modal');
         const closeEmailUnsubscribeModalBtn = document.getElementById('close-unsubscribe-modal');
@@ -646,7 +865,7 @@
                     unsubscribeFormMessage.innerHTML = '<i class="fas fa-check-circle mr-2"></i> You have been unsubscribed successfully!';
                     
                     setTimeout(() => {
-                        closeEmailModal();
+                        closeEmailUnsubscribeModal();
                     }, 2000);
                 } else {
                     const errorData = await response.json();

@@ -1,4 +1,6 @@
 from database.database import get_database
+from datetime import datetime, timezone
+from bson import ObjectId
 
 db = get_database()
 email_collection = db["email_subscription"]
@@ -17,6 +19,31 @@ async def get_email_subscriptions():
         results.append(doc)
     
     return results
+
+async def update_email_subscription(email):
+    if not email:
+        raise ValueError("Email list cannot be empty.")
+    
+    try:
+        object_ids = [ObjectId(e) for e in email]
+    except Exception as e:
+        raise ValueError(f"Invalid ObjectId format in email list: {email}") from e
+
+    result = await email_collection.update_many(
+        {"_id": {"$in": object_ids}},
+        {"$set": {"last_sent": int(datetime.now(timezone.utc).timestamp())}}
+    )
+
+    # doc = await email_collection.find_one({"_id": ObjectId(email[0])})
+    # print("DEBUG:", doc)
+    
+    if result.modified_count == 0:
+        # print(result)
+        # doc = await email_collection.find_one({"_id": ObjectId(email[0])})
+        # print("DEBUG:", doc)
+        print(f"No email subscriptions found for the provided emails: {email}")
+    
+    return result.modified_count
 
 async def delete_email_subscription(email: str):
     result = await email_collection.delete_many({"email": email})

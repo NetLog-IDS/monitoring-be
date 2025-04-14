@@ -180,7 +180,8 @@ async def flows_worker():
 
 async def flush_intrusions(buffer):
     docs = []
-    broadcasts = []
+    broadcasts_dos = None
+    broadcasts_port_scan = None
     email_tasks = []
     pkt_cnt = 0
     intrusion_cnt = 0
@@ -193,19 +194,28 @@ async def flush_intrusions(buffer):
         data['TIME_DIFF_SECONDS'] = data['MONITORING_TIME'] - data['SNIFF_TIMESTAMP_START']
         docs.append(data)
         pkt_cnt += 1
-        if values["STATUS"] != "NOT DETECTED":
+        if data["STATUS"] != "NOT DETECTED":
             intrusion_cnt += 1
-            if values["topic"] == "DOS":
+            if data["topic"] == "DOS":
                 dos_cnt += 1
-            elif values["topic"] == "PORT_SCAN":
+                broadcasts_dos = {"topic": topic, "value": values}
+            elif data["topic"] == "PORT_SCAN":
                 port_scan_cnt += 1
-            broadcasts.append({"topic": topic, "value": values})
+                broadcasts_port_scan = {"topic": topic, "value": values}
             email_tasks.append(send_email(topic, values))
     
     await create_intrusion_detection_batch(docs)
-    
-    await asyncio.gather(*broadcast({"pkt_cnt": pkt_cnt, "intrusion_cnt": intrusion_cnt, "dos_cnt": dos_cnt, "port_scan_cnt": port_scan_cnt}))
-    
+
+    if broadcasts_dos:
+        await broadcast(broadcasts_dos)
+    if broadcasts_port_scan:
+        await broadcast(broadcasts_port_scan)
+
+    await broadcast({"pkt_cnt": pkt_cnt, 
+                     "intrusion_cnt": intrusion_cnt, 
+                     "dos_cnt": dos_cnt, 
+                     "port_scan_cnt": port_scan_cnt})
+
     asyncio.gather(*email_tasks)
 
 async def flush_flows(buffer):
