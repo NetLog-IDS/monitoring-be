@@ -2,7 +2,7 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from dotenv import load_dotenv
 import os
 from service.email import get_email_subscriptions
-
+from datetime import datetime, timezone
 load_dotenv()
 
 conf = ConnectionConfig(
@@ -18,10 +18,16 @@ conf = ConnectionConfig(
 
 async def send_email(topic, values) -> None:  
     emails_dict = await get_email_subscriptions()
+    curr_time = int(datetime.now(timezone.utc).timestamp()) 
+    
+    email = []
+    for emails in emails_dict:
+        if curr_time - emails['last_sent'] > 30:
+            email.append(emails['email'])
 
-    if len(emails_dict) == 0:
-        return  
-    email = [e['email'] for e in emails_dict]
+    if len(email) == 0:
+        return 
+
     if topic == "DOS":
         body = {
             "prediction": topic,

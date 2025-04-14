@@ -23,8 +23,8 @@ async def get_intrusion_detection_results(limit: int = 10):
     
     return results
 
-async def get_all_intrusion_results():
-    cursor = intrusion_collection.find().sort("MONITORING_TIME", -1)
+async def get_all_intrusion_results(limit: int = 25):
+    cursor = intrusion_collection.find().sort("MONITORING_TIME", -1).limit(limit)
     
     results = []
     async for doc in cursor:

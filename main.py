@@ -27,6 +27,8 @@ TOPICS = ["network-traffic", "DOS","PORT_SCAN", "network-flows"]
 intrusion_queue = Queue()
 packets_queue = Queue()
 flows_queue = Queue()
+email_queue = Queue()
+broadcast_queue = Queue()
 
 BATCH_SIZE = 1000
 BATCH_INTERVAL = 1  # seconds
@@ -93,7 +95,6 @@ async def consume_from_kafka():
 
 
 async def broadcast(data):
-    """Send Kafka messages to all connected WebSocket clients"""
     try:
         await manager.broadcast_json(data)
     except Exception as e:
@@ -102,7 +103,6 @@ async def broadcast(data):
 
 @app.websocket("/websocket")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time message updates"""
     await manager.connect(websocket)
     try:
         while True:
@@ -181,29 +181,38 @@ async def flows_worker():
 async def flush_intrusions(buffer):
     docs = []
     broadcasts = []
-    # email_tasks = []
+    email_tasks = []
+    pkt_cnt = 0
+    intrusion_cnt = 0
+    dos_cnt = 0
+    port_scan_cnt = 0
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
         data['MONITORING_TIME'] = int(datetime.now(timezone.utc).timestamp())
         data['TIME_DIFF_SECONDS'] = data['MONITORING_TIME'] - data['SNIFF_TIMESTAMP_START']
         docs.append(data)
-        broadcasts.append({"topic": topic, "value": values})
-        # if values["STATUS"] != "NOT DETECTED":
-            # email_tasks.append(send_email(topic, values))
+        pkt_cnt += 1
+        if values["STATUS"] != "NOT DETECTED":
+            intrusion_cnt += 1
+            if values["topic"] == "DOS":
+                dos_cnt += 1
+            elif values["topic"] == "PORT_SCAN":
+                port_scan_cnt += 1
+            broadcasts.append({"topic": topic, "value": values})
+            email_tasks.append(send_email(topic, values))
     
     await create_intrusion_detection_batch(docs)
     
-    await asyncio.gather(*[broadcast(b) for b in broadcasts])
+    await asyncio.gather(*broadcast({"pkt_cnt": pkt_cnt, "intrusion_cnt": intrusion_cnt, "dos_cnt": dos_cnt, "port_scan_cnt": port_scan_cnt}))
     
-    # asyncio.gather(*email_tasks)
+    asyncio.gather(*email_tasks)
 
 async def flush_flows(buffer):
     docs = []
 
     for values, _ in buffer:
         data = values.copy()
-        # data["topic"] = topic
         docs.append(data)
     
     await create_network_flows_batch(docs)
@@ -213,7 +222,6 @@ async def flush_packets(buffer):
     
     for values, _ in buffer:
         data = values.copy()
-        # data["topic"] = topic
         docs.append(data)
 
     await create_network_packets_batch(docs)

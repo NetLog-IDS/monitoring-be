@@ -7,7 +7,7 @@ async def create_network_flows(data: dict):
     result = await network_flows_collection.insert_one(data)
     return {"inserted_id": str(result.inserted_id)}
 
-async def get_network_flows(limit: int = 10):
+async def get_network_flows(limit: int = 25):
     cursor = network_flows_collection.find().sort("_id", -1)
     
     results = []
