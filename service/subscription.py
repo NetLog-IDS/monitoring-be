@@ -19,12 +19,10 @@ conf = ConnectionConfig(
 async def send_email(topic, values) -> None:  
     emails_dict = await get_email_subscriptions()
     curr_time = int(datetime.now(timezone.utc).timestamp()) 
-    # print("dict: ", emails_dict)
     email = []
     email_id=[]
     for emails in emails_dict:
-        if curr_time - emails['last_sent'] > 60: # Setiap 60 detik ajaa
-            # print("eligible: ", curr_time, emails['last_sent'])
+        if curr_time - emails['last_sent'] > 60:
             email.append(emails['email'])
             email_id.append(emails['_id'])
 

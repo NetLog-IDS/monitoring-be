@@ -33,15 +33,6 @@ async def update_email_subscription(email):
         {"_id": {"$in": object_ids}},
         {"$set": {"last_sent": int(datetime.now(timezone.utc).timestamp())}}
     )
-
-    # doc = await email_collection.find_one({"_id": ObjectId(email[0])})
-    # print("DEBUG:", doc)
-    
-    if result.modified_count == 0:
-        # print(result)
-        # doc = await email_collection.find_one({"_id": ObjectId(email[0])})
-        # print("DEBUG:", doc)
-        print(f"No email subscriptions found for the provided emails: {email}")
     
     return result.modified_count
 

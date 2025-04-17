@@ -37,7 +37,6 @@ manager = ConnectionManager()
 
 @app.on_event("startup")
 async def startup_event():
-    """Start Kafka consumer on FastAPI startup"""
     asyncio.create_task(intrusion_worker())
     asyncio.create_task(consume_from_kafka())
     asyncio.create_task(packets_worker())

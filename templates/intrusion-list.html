@@ -6,7 +6,6 @@
     <title>Network Intrusion Detection System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Add Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
@@ -49,7 +48,6 @@
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-    <!-- Top Navigation Bar -->
     <nav class="bg-white dark:bg-gray-800 shadow-md px-6 py-4 flex justify-between items-center sticky top-0 z-10">
         <div class="flex items-center space-x-3">
             <i class="fas fa-shield-alt text-primary-600 dark:text-primary-400 text-2xl"></i>
@@ -88,9 +86,7 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <div class="container mx-auto px-4 py-6">
-        <!-- Dashboard Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-primary-500">
                 <div class="flex justify-between items-start">
@@ -132,7 +128,6 @@
             </div>
         </div>
 
-        <!-- Detection Trend Chart -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
                 <i class="fas fa-chart-line mr-2 text-primary-500 dark:text-primary-400"></i>
@@ -143,7 +138,6 @@
             </div>
         </div>
 
-        <!-- Connection Status -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-3">
@@ -159,7 +153,6 @@
             </div>
         </div>
 
-        <!-- Main Content Area -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center">
@@ -188,7 +181,6 @@
                 </div>
             </div>
 
-            <!-- Table Container with Fixed Height -->
             <div class="overflow-auto scrollbar-hide" style="max-height: 500px;">
                 <table id="intrusion-table" class="w-full table-auto">
                     <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
@@ -202,12 +194,10 @@
                         </tr>
                     </thead>
                     <tbody id="intrusion-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        <!-- Table rows will be added dynamically -->
                     </tbody>
                 </table>
             </div>
 
-            <!-- Empty State -->
             <div id="empty-state" class="flex flex-col items-center justify-center py-12 px-4">
                 <div class="bg-gray-100 dark:bg-gray-700 p-6 rounded-full mb-4">
                     <i class="fas fa-stream text-4xl text-gray-400 dark:text-gray-500"></i>
@@ -216,14 +206,12 @@
                 <p class="text-gray-500 dark:text-gray-400 text-center mt-2">Waiting for network traffic to appear...</p>
             </div>
 
-            <!-- Loading Indicator -->
             <div id="loading-indicator" class="flex justify-center items-center py-8 hidden">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 dark:border-primary-400"></div>
             </div>
         </div>
     </div>
 
-    <!-- Notification Toast -->
     <div id="notification-toast" class="fixed bottom-4 right-4 bg-red-600 text-white px-6 py-4 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50 hidden">
         <i class="fas fa-exclamation-triangle mr-3"></i>
         <div>
@@ -235,7 +223,6 @@
         </button>
     </div>
 
-    <!-- Email Subscription Modal -->
     <div id="email-subscription-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
             <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
@@ -328,21 +315,18 @@
         themeToggle.addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            
-            // Update chart colors when theme changes
             updateChartTheme();
         });
 
-        // Initialize the detection chart
         let detectionChart;
-        const maxDataPoints = 10; // Changed from 20 to 10 to limit to the 10 most recent points
+        const maxDataPoints = 10;
         const chartData = {
             labels: [],
             datasets: [
                 {
                     label: 'Total Detections',
                     data: [],
-                    borderColor: '#0ea5e9', // primary-500
+                    borderColor: '#0ea5e9',
                     backgroundColor: 'rgba(14, 165, 233, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
@@ -351,7 +335,7 @@
                 {
                     label: 'DoS Detections',
                     data: [],
-                    borderColor: '#ef4444', // red-500
+                    borderColor: '#ef4444', 
                     backgroundColor: 'rgba(239, 68, 68, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
@@ -360,7 +344,7 @@
                 {
                     label: 'Port Scan Detections',
                     data: [],
-                    borderColor: '#eab308', // yellow-500
+                    borderColor: '#eab308',
                     backgroundColor: 'rgba(234, 179, 8, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
@@ -372,7 +356,6 @@
         function initChart() {
             const ctx = document.getElementById('detection-chart').getContext('2d');
             
-            // Set chart options
             const options = {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -392,7 +375,7 @@
                         },
                         ticks: {
                             color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151',
-                            precision: 0 // Only show integers
+                            precision: 0 
                         }
                     }
                 },
@@ -424,7 +407,6 @@
                 }
             };
             
-            // Create the chart
             detectionChart = new Chart(ctx, {
                 type: 'line',
                 data: chartData,
@@ -432,22 +414,18 @@
             });
         }
 
-        // Update chart theme when dark mode is toggled
         function updateChartTheme() {
             if (!detectionChart) return;
             
             const isDark = document.documentElement.classList.contains('dark');
             
-            // Update grid and text colors
             detectionChart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
             detectionChart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
             detectionChart.options.scales.x.ticks.color = isDark ? '#e5e7eb' : '#374151';
             detectionChart.options.scales.y.ticks.color = isDark ? '#e5e7eb' : '#374151';
             
-            // Update legend colors
             detectionChart.options.plugins.legend.labels.color = isDark ? '#e5e7eb' : '#374151';
             
-            // Update tooltip colors
             detectionChart.options.plugins.tooltip.backgroundColor = isDark ? '#374151' : 'white';
             detectionChart.options.plugins.tooltip.titleColor = isDark ? '#e5e7eb' : '#111827';
             detectionChart.options.plugins.tooltip.bodyColor = isDark ? '#e5e7eb' : '#374151';
@@ -456,18 +434,15 @@
             detectionChart.update();
         }
 
-        // Add data to the chart
         function addChartData(totalDetections, dosDetections, portScanDetections) {
             const now = new Date();
             const timeLabel = now.toLocaleTimeString();
             
-            // Add new data
             chartData.labels.push(timeLabel);
             chartData.datasets[0].data.push(totalDetections);
             chartData.datasets[1].data.push(dosDetections);
             chartData.datasets[2].data.push(portScanDetections);
             
-            // Remove old data if we have more than maxDataPoints
             if (chartData.labels.length > maxDataPoints) {
                 chartData.labels.shift();
                 chartData.datasets.forEach(dataset => {
@@ -475,24 +450,19 @@
                 });
             }
             
-            // Update the chart
             detectionChart.update();
         }
 
-        // Initialize chart when the page loads
         document.addEventListener('DOMContentLoaded', initChart);
 
-        // WebSocket connection
         let socket = new WebSocket("ws://" + window.location.hostname + ":8000/websocket");
         let isPaused = false;
         let notificationCount = 0;
         
-        // Statistics counters
         let totalDetectionCount = 0;
         let totalDosDetection = 0;
         let totalPortscanDetection = 0;
         
-        // Rate tracking
         let detectionPerMinute = 0;
         let dosDetectionPerMinute = 0;
         let portscanDetectionPerMinute = 0;
@@ -501,7 +471,6 @@
         let lastMinutePortscanFlow = 0;
         let lastMinuteTime = Date.now();
         
-        // Update statistics every second
         setInterval(() => {
             const now = Date.now();
             const elapsedMinutes = (now - lastMinuteTime) / 60000;
@@ -517,7 +486,6 @@
                 lastMinuteTime = now;
             }
             
-            // Update UI with current statistics
             document.getElementById('total-detection').textContent = totalDetectionCount;
             document.getElementById('detection-rate').textContent = detectionPerMinute;
             document.getElementById('total-dos').textContent = totalDosDetection;
@@ -570,56 +538,45 @@
             let data = JSON.parse(event.data);
             console.log("Received data:", data);
             
-            // Handle statistics data
             if (data.pkt_cnt !== undefined) {
-                // This is statistics data
                 totalDetectionCount = data.pkt_cnt;
                 totalDosDetection = data.dos_cnt;
                 totalPortscanDetection = data.port_scan_cnt;
                 
-                // Update rate tracking
                 lastMinuteDetections++;
                 
-                // Update the chart with new data
                 addChartData(totalDetectionCount, totalDosDetection, totalPortscanDetection);
                 
                 document.getElementById('empty-state').classList.add('hidden');
                 return;
             }
             
-            // Handle detection result
             if (data.topic && data.value) {
-                // This is a detection result
                 const detectionType = data.topic;
                 const detectionData = data.value;
                 
-                // Update counters based on detection type
                 if (detectionType === 'DOS') {
                     lastMinuteDosFlow++;
                 } else if (detectionType === 'PORT_SCAN') {
                     lastMinutePortscanFlow++;
                 }
                 
-                // Show notification for detected intrusions
                 if (detectionData.STATUS === 'DETECTED') {
                     showNotification(detectionData, detectionType);
                 }
                 
                 document.getElementById('empty-state').classList.add('hidden');
                 
-                // Add to table
                 addDetectionToTable(detectionData, detectionType);
             }
         };
 
-        // Add detection to table
         function addDetectionToTable(detection, type) {
             const timestamp = new Date().toLocaleTimeString();
             
             let row = document.createElement("tr");
             row.classList.add("hover:bg-gray-50", "dark:hover:bg-gray-700", "transition-colors", "duration-150");
             
-            // Apply filter if active
             const filterType = document.getElementById('filter-type').value;
             if (filterType === 'dos' && type !== 'DOS') {
                 row.classList.add('hidden');
@@ -627,7 +584,6 @@
                 row.classList.add('hidden');
             }
             
-            // Highlight detected intrusions
             if (detection.STATUS === 'DETECTED') {
                 row.classList.add('bg-red-50', 'dark:bg-red-900/10', 'pulse-animation');
                 setTimeout(() => {
@@ -635,7 +591,6 @@
                 }, 5000);
             }
             
-            // Format timestamps for better readability
             const startTime = new Date(detection.TIMESTAMP_START * 1000).toLocaleString();
             const endTime = new Date(detection.TIMESTAMP_END * 1000).toLocaleString();
             
@@ -655,14 +610,12 @@
             let table = document.getElementById("intrusion-table-body");
             table.prepend(row);
             
-            // Limit table rows for performance
             const maxRows = 100;
             while (table.children.length > maxRows) {
                 table.removeChild(table.lastChild);
             }
         };
 
-        // Show notification
         function showNotification(detection, type) {
             notificationCount++;
             
@@ -682,7 +635,6 @@
             }, 5000);
         }
 
-        // Event Listeners
         document.getElementById('close-notification').addEventListener('click', function() {
             document.getElementById('notification-toast').classList.add('translate-y-20', 'opacity-0');
             setTimeout(() => {
@@ -748,7 +700,6 @@
             });
         });
 
-        // Subscription 
         const emailModal = document.getElementById('email-subscription-modal');
         const openEmailModalBtn = document.getElementById('open-email-modal');
         const closeEmailModalBtn = document.getElementById('close-email-modal');
@@ -817,7 +768,6 @@
             }
         });
 
-        // Unsubscribe 
         const emailUnsubscribeModal = document.getElementById('unsubscribe-modal');
         const openEmailUnsubscribeModalBtn = document.getElementById('open-unsubscribe-modal');
         const closeEmailUnsubscribeModalBtn = document.getElementById('close-unsubscribe-modal');
