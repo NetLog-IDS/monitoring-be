@@ -189,8 +189,6 @@ async def flush_intrusions(buffer):
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
-        data['MONITORING_TIME'] = int(datetime.now(timezone.utc).timestamp())
-        data['TIME_DIFF_SECONDS'] = data['MONITORING_TIME'] - data['SNIFF_TIMESTAMP_START']
         docs.append(data)
         pkt_cnt += 1
         if data["STATUS"] != "NOT DETECTED":
@@ -202,8 +200,6 @@ async def flush_intrusions(buffer):
                 port_scan_cnt += 1
                 broadcasts_port_scan = {"topic": topic, "value": values}
             email_tasks.append(send_email(topic, values))
-    
-    await create_intrusion_detection_batch(docs)
 
     if broadcasts_dos:
         await broadcast(broadcasts_dos)
@@ -216,6 +212,8 @@ async def flush_intrusions(buffer):
                      "port_scan_cnt": port_scan_cnt})
 
     asyncio.gather(*email_tasks)
+
+    await create_intrusion_detection_batch(docs)
 
 async def flush_flows(buffer):
     docs = []

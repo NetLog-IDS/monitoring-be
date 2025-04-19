@@ -1,9 +1,15 @@
 from database.database import get_database
+from datetime import datetime, timezone
 
 db = get_database()
 intrusion_collection = db["intrusion"]
 
 async def create_intrusion_detection_batch(docs):
+    current_time = int(datetime.now(timezone.utc).timestamp())
+    for doc in docs:
+        doc["MONITORING_TIME_END"] = current_time
+        doc['TIME_DIFF_SECONDS'] = doc['MONITORING_TIME_END'] - doc['SNIFF_TIMESTAMP_START']
+    
     result = await intrusion_collection.insert_many(docs)
     return {"inserted_id": str(result.inserted_ids)}
 
