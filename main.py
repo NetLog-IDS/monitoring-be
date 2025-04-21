@@ -197,13 +197,13 @@ async def flush_intrusions(buffer):
             intrusion_cnt += 1
             if data["topic"] == "DOS":
                 dos_cnt += 1
-                if values["IP_SRC"] not in unique_src_ip:
-                    unique_src_ip.add(values["IP_SRC"])
+                if values["IP_DST"] not in unique_dst_ip:
+                    unique_dst_ip.add(values["IP_DST"])
                     broadcasts_dos.append({"topic": topic, "value": values})
             elif data["topic"] == "PORT_SCAN":
                 port_scan_cnt += 1
-                if values["IP_DST"] not in unique_dst_ip:
-                    unique_dst_ip.add(values["IP_DST"])
+                if values["IP_SRC"] not in unique_src_ip:
+                    unique_src_ip.add(values["IP_SRC"])
                     broadcasts_port_scan.append({"topic": topic, "value": values})
             email_tasks.append(send_email(topic, values))
 
