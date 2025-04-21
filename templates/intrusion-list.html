@@ -199,6 +199,22 @@
                 </table>
             </div>
 
+            <div id="pagination-controls" class="flex justify-between items-center p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    Showing <span id="pagination-start">1</span>-<span id="pagination-end">25</span> of <span id="pagination-total">0</span> entries
+                </div>
+                <div class="flex space-x-2">
+                    <button id="pagination-prev" class="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-chevron-left mr-1"></i> Previous
+                    </button>
+                    <div id="pagination-pages" class="flex space-x-1">
+                    </div>
+                    <button id="pagination-next" class="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Next <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
             <div id="empty-state" class="flex flex-col items-center justify-center py-12 px-4">
                 <div class="bg-gray-100 dark:bg-gray-700 p-6 rounded-full mb-4">
                     <i class="fas fa-stream text-4xl text-gray-400 dark:text-gray-500"></i>
@@ -574,49 +590,38 @@
 
         function addDetectionToTable(detection, type) {
             const timestamp = new Date().toLocaleTimeString();
-            
-            let row = document.createElement("tr");
-            row.classList.add("hover:bg-gray-50", "dark:hover:bg-gray-700", "transition-colors", "duration-150");
-            
-            const filterType = document.getElementById('filter-type').value;
-            if (filterType === 'dos' && type !== 'DOS') {
-                row.classList.add('hidden');
-            } else if (filterType === 'portscan' && type !== 'PORT_SCAN') {
-                row.classList.add('hidden');
-            }
-            
-            if (detection.STATUS === 'DETECTED') {
-                row.classList.add('bg-red-50', 'dark:bg-red-900/10', 'pulse-animation');
-                setTimeout(() => {
-                    row.classList.remove('pulse-animation', 'bg-red-50', 'dark:bg-red-900/10');
-                }, 5000);
-            }
-            
             const startTime = new Date(detection.TIMESTAMP_START * 1000).toLocaleString();
             const endTime = new Date(detection.TIMESTAMP_END * 1000).toLocaleString();
             
-            row.innerHTML = `
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${timestamp}</td>
-                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${detection.IP_SRC ? detection.IP_SRC : "-"}</td>
-                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${detection.IP_DST ? detection.IP_DST : "-"}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${startTime}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${endTime}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${type}</td>
-                <td class="p-4 text-sm">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${detection.STATUS === 'DETECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}">
-                        ${detection.STATUS}
-                    </span>
-                </td>     
-            `;
-
-            let table = document.getElementById("intrusion-table-body");
-            table.prepend(row);
+            const newDetection = {
+                timestamp: timestamp,
+                ipSrc: detection.IP_SRC || "-",
+                ipDst: detection.IP_DST || "-",
+                startTime: startTime,
+                endTime: endTime,
+                type: type,
+                status: detection.STATUS,
+                isNew: true,
+                rawData: detection
+            };
             
-            const maxRows = 100;
-            while (table.children.length > maxRows) {
-                table.removeChild(table.lastChild);
+            allIntrusionData.unshift(newDetection);
+            
+            const maxStoredEntries = 500;
+            if (allIntrusionData.length > maxStoredEntries) {
+                allIntrusionData = allIntrusionData.slice(0, maxStoredEntries);
             }
-        };
+            
+            totalPages = Math.ceil(allIntrusionData.length / entriesPerPage);
+            
+            if (currentPage === 1) {
+                renderCurrentPage();
+            } else {
+                goToPage(1);
+            }
+            
+            updatePagination();
+        }
 
         function showNotification(detection, type) {
             notificationCount++;
@@ -663,43 +668,19 @@
         });
 
         document.getElementById('clear-btn').addEventListener('click', function() {
-            document.getElementById('intrusion-table-body').innerHTML = '';
-            document.getElementById('empty-state').classList.remove('hidden');
+            allIntrusionData = [];
+            totalPages = 0;
+            currentPage = 1;
+            renderCurrentPage();
+            updatePagination();
         });
 
         document.getElementById('filter-type').addEventListener('change', function() {
-            const filterType = this.value;
-            const rows = document.getElementById('intrusion-table-body').querySelectorAll('tr');
-            
-            rows.forEach(row => {
-                const typeCell = row.querySelector('td:nth-child(5)');
-                const isDos = typeCell && typeCell.textContent.trim() === 'DOS';
-                const isPortScan = typeCell && typeCell.textContent.trim() === 'PORT_SCAN';
-                
-                if (filterType === 'all') {
-                    row.classList.remove('hidden');
-                } else if (filterType === 'dos' && !isDos) {
-                    row.classList.add('hidden');
-                } else if (filterType === 'portscan' && !isPortScan) {
-                    row.classList.add('hidden');
-                } else {
-                    row.classList.remove('hidden');
-                }
-            });
+            renderCurrentPage();
         });
 
         document.getElementById('search-input').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.getElementById('intrusion-table-body').querySelectorAll('tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.classList.remove('hidden');
-                } else {
-                    row.classList.add('hidden');
-                }
-            });
+            renderCurrentPage();
         });
 
         const emailModal = document.getElementById('email-subscription-modal');
@@ -833,6 +814,167 @@
                 unsubscribeFormMessage.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i> Network error. Please check your connection and try again.';
             }
         });
+
+        let allIntrusionData = [];
+        const entriesPerPage = 25;
+        let currentPage = 1;
+        let totalPages = 1;
+
+        function updatePagination() {
+            const totalEntries = allIntrusionData.length;
+            const start = (currentPage - 1) * entriesPerPage + 1;
+            const end = Math.min(currentPage * entriesPerPage, totalEntries);
+            
+            document.getElementById('pagination-start').textContent = totalEntries > 0 ? start : 0;
+            document.getElementById('pagination-end').textContent = end;
+            document.getElementById('pagination-total').textContent = totalEntries;
+            
+            document.getElementById('pagination-prev').disabled = currentPage === 1;
+            document.getElementById('pagination-next').disabled = currentPage === totalPages || totalPages === 0;
+            
+            const pagesContainer = document.getElementById('pagination-pages');
+            pagesContainer.innerHTML = '';
+            
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4 && totalPages > 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            if (startPage > 1) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600';
+                pageBtn.textContent = '1';
+                pageBtn.addEventListener('click', () => goToPage(1));
+                pagesContainer.appendChild(pageBtn);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400';
+                    ellipsis.textContent = '...';
+                    pagesContainer.appendChild(ellipsis);
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                if (i === currentPage) {
+                    pageBtn.className = 'w-8 h-8 rounded-md flex items-center justify-center bg-primary-600 text-white';
+                } else {
+                    pageBtn.className = 'w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600';
+                }
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => goToPage(i));
+                pagesContainer.appendChild(pageBtn);
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400';
+                    ellipsis.textContent = '...';
+                    pagesContainer.appendChild(ellipsis);
+                }
+                
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600';
+                pageBtn.textContent = totalPages;
+                pageBtn.addEventListener('click', () => goToPage(totalPages));
+                pagesContainer.appendChild(pageBtn);
+            }
+        }
+
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) return;
+            
+            currentPage = page;
+            renderCurrentPage();
+            updatePagination();
+        }
+
+        function renderCurrentPage() {
+            const tableBody = document.getElementById('intrusion-table-body');
+            tableBody.innerHTML = '';
+            
+            const startIndex = (currentPage - 1) * entriesPerPage;
+            const endIndex = Math.min(startIndex + entriesPerPage, allIntrusionData.length);
+            
+            const filterType = document.getElementById('filter-type').value;
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            let visibleCount = 0;
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const item = allIntrusionData[i];
+                
+                if (filterType === 'dos' && item.type !== 'DOS') continue;
+                if (filterType === 'portscan' && item.type !== 'PORT_SCAN') continue;
+                
+                const itemText = `${item.timestamp} ${item.ipSrc} ${item.ipDst} ${item.startTime} ${item.endTime} ${item.type} ${item.status}`.toLowerCase();
+                if (searchTerm && !itemText.includes(searchTerm)) continue;
+                
+                tableBody.appendChild(createTableRow(item));
+                visibleCount++;
+            }
+            
+            if (visibleCount === 0 && allIntrusionData.length > 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('empty-state').querySelector('h3').textContent = 'No matching results';
+                document.getElementById('empty-state').querySelector('p').textContent = 'Try adjusting your filters or search criteria';
+            } else if (allIntrusionData.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('empty-state').querySelector('h3').textContent = 'No network flows detected yet';
+                document.getElementById('empty-state').querySelector('p').textContent = 'Waiting for network traffic to appear...';
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+            }
+        }
+
+
+        function createTableRow(item) {
+            let row = document.createElement("tr");
+            row.classList.add("hover:bg-gray-50", "dark:hover:bg-gray-700", "transition-colors", "duration-150");
+            
+            if (item.status === 'DETECTED') {
+                row.classList.add('bg-red-50', 'dark:bg-red-900/10');
+                if (item.isNew) {
+                    row.classList.add('pulse-animation');
+                    setTimeout(() => {
+                        row.classList.remove('pulse-animation');
+                    }, 5000);
+                    item.isNew = false;
+                }
+            }
+            
+            row.innerHTML = `
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.timestamp}</td>
+                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipSrc || "-"}</td>
+                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipDst || "-"}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.startTime}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.endTime}</td>
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.type}</td>
+                <td class="p-4 text-sm">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${item.status === 'DETECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}">
+                        ${item.status}
+                    </span>
+                </td>     
+            `;
+            
+            return row;
+        }
+
+        document.getElementById('pagination-prev').addEventListener('click', function() {
+            goToPage(currentPage - 1);
+        });
+
+        document.getElementById('pagination-next').addEventListener('click', function() {
+            goToPage(currentPage + 1);
+        });
+
+        updatePagination();
+
     </script>
 </body>
 </html>

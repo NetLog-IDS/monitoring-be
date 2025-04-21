@@ -179,8 +179,10 @@ async def flows_worker():
 
 async def flush_intrusions(buffer):
     docs = []
-    broadcasts_dos = None
-    broadcasts_port_scan = None
+    broadcasts_dos = []
+    broadcasts_port_scan = []
+    unique_src_ip = set()
+    unique_dst_ip = set()
     email_tasks = []
     pkt_cnt = 0
     intrusion_cnt = 0
@@ -195,21 +197,25 @@ async def flush_intrusions(buffer):
             intrusion_cnt += 1
             if data["topic"] == "DOS":
                 dos_cnt += 1
-                broadcasts_dos = {"topic": topic, "value": values}
+                if values["IP_SRC"] not in unique_src_ip:
+                    unique_src_ip.add(values["IP_SRC"])
+                    broadcasts_dos.append({"topic": topic, "value": values})
             elif data["topic"] == "PORT_SCAN":
                 port_scan_cnt += 1
-                broadcasts_port_scan = {"topic": topic, "value": values}
+                if values["IP_DST"] not in unique_dst_ip:
+                    unique_dst_ip.add(values["IP_DST"])
+                    broadcasts_port_scan.append({"topic": topic, "value": values})
             email_tasks.append(send_email(topic, values))
-
-    if broadcasts_dos:
-        await broadcast(broadcasts_dos)
-    if broadcasts_port_scan:
-        await broadcast(broadcasts_port_scan)
 
     await broadcast({"pkt_cnt": pkt_cnt, 
                      "intrusion_cnt": intrusion_cnt, 
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": port_scan_cnt})
+
+    for data in broadcasts_dos:
+        await broadcast(data)
+    for data in broadcasts_port_scan:
+        await broadcast(data)
 
     asyncio.gather(*email_tasks)
 
