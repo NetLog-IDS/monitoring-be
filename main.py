@@ -63,6 +63,16 @@ async def intrusions(request: Request, detected: bool = None):
     intrusions = await get_all_intrusion_results(detected=detected)
     return JSONResponse(content=intrusions)
 
+@app.get("/network-traffic")
+async def get_network_traffic(request: Request, detected: bool = None):
+    traffics = await get_network_packets()
+    return JSONResponse(content=traffics)
+
+@app.get("/network-flows")
+async def get_network_flow(request: Request, detected: bool = None):
+    flows = await get_network_flows()
+    return JSONResponse(content=flows)
+
 @app.get("/intrusions/delete")
 async def delete_intrusions(request: Request):
     await delete_all_intrusion_results()
