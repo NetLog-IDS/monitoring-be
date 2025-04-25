@@ -106,7 +106,6 @@
                     <div>
                         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">DoS Detected</p>
                         <h3 id="total-dos" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
-                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i><span id="flow-dos">0</span> detections/min</p>
                     </div>
                     <div class="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
                         <i class="fas fa-bug text-red-500"></i>
@@ -119,7 +118,6 @@
                     <div>
                         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Port Scan Detected</p>
                         <h3 id="total-portscan" class="text-3xl font-bold text-gray-800 dark:text-white mt-1">0</h3>
-                        <p class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i><span id="flow-portscan">0</span> detections/min</p>
                     </div>
                     <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
                         <i class="fas fa-search text-yellow-500"></i>
@@ -482,7 +480,7 @@
         
         let detectionPerMinute = 0;
         let dosDetectionPerMinute = 0;
-        let portscanDetectionPerMinute = 0;
+
         let lastMinuteDetections = 0;
         let lastMinuteDosFlow = 0;
         let lastMinutePortscanFlow = 0;
@@ -495,7 +493,6 @@
             if (elapsedMinutes >= 1) {
                 detectionPerMinute = Math.round(lastMinuteDetections / elapsedMinutes);
                 dosDetectionPerMinute = Math.round(lastMinuteDosFlow / elapsedMinutes);
-                portscanDetectionPerMinute = Math.round(lastMinutePortscanFlow / elapsedMinutes);
                 
                 lastMinuteDetections = 0;
                 lastMinuteDosFlow = 0;

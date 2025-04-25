@@ -30,6 +30,9 @@ async def send_email(topic, values) -> None:
                 email.append(emails['email'])
                 email_id.append(emails['_id'])
 
+        if len(email) <= 0:
+            return
+
         if len(email) > 0:
             if topic == "DOS":
                 body = {
