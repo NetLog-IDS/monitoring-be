@@ -31,7 +31,7 @@ email_queue = Queue()
 broadcast_queue = Queue()
 
 BATCH_SIZE = 1000
-BATCH_INTERVAL = 1  # seconds
+BATCH_INTERVAL = 0.1  # seconds
 
 manager = ConnectionManager()
 
