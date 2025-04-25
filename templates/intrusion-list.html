@@ -553,24 +553,11 @@
             if (isPaused) return;
             
             let data = JSON.parse(event.data);
-            console.log("Received data:", data);
-            
-            if (data.pkt_cnt !== undefined) {
-                totalDetectionCount = totalDetectionCount + data.pkt_cnt;
-                totalDosDetection = totalDosDetection + data.dos_cnt;
-                totalPortscanDetection = totalPortscanDetection + data.port_scan_cnt;
-                
-                lastMinuteDetections++;
-                
-                addChartData(data.pkt_cnt, data.dos_cnt, data.port_scan_cnt);
-                
-                document.getElementById('empty-state').classList.add('hidden');
-                return;
-            }
             
             if (data.topic && data.value) {
                 const detectionType = data.topic;
                 const detectionData = data.value;
+                addDetectionToTable(detectionData, detectionType);
                 
                 if (detectionType === 'DOS') {
                     lastMinuteDosFlow++;
@@ -583,8 +570,19 @@
                 }
                 
                 document.getElementById('empty-state').classList.add('hidden');
+            }
+            
+            if (data.pkt_cnt !== undefined) {
+                totalDetectionCount = totalDetectionCount + data.pkt_cnt;
+                totalDosDetection = totalDosDetection + data.dos_cnt;
+                totalPortscanDetection = totalPortscanDetection + data.port_scan_cnt;
                 
-                addDetectionToTable(detectionData, detectionType);
+                lastMinuteDetections++;
+                
+                addChartData(data.pkt_cnt, data.dos_cnt, data.port_scan_cnt);
+                
+                document.getElementById('empty-state').classList.add('hidden');
+                return;
             }
         };
 

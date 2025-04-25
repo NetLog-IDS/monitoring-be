@@ -91,9 +91,9 @@ async def consume_from_kafka():
             if topic == "network-traffic":
                 values['timestamp'] = int(values['timestamp']) // 1_000_000
                 values['sniff_time'] = int(values['sniff_time']) // 1_000_000
-                await packets_queue.put((values, topic))
+                await packets_queue.put(values)
             elif topic == "network-flows":
-                await flows_queue.put((values, topic))
+                await flows_queue.put(values)
             else:
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
@@ -232,19 +232,7 @@ async def flush_intrusions(buffer):
     await create_intrusion_detection_batch(docs)
 
 async def flush_flows(buffer):
-    docs = []
-
-    for values, _ in buffer:
-        data = values.copy()
-        docs.append(data)
-    
-    await create_network_flows_batch(docs)
+    await create_network_flows_batch(buffer)
 
 async def flush_packets(buffer):
-    docs = []
-    
-    for values, _ in buffer:
-        data = values.copy()
-        docs.append(data)
-
-    await create_network_packets_batch(docs)
+    await create_network_packets_batch(buffer)
