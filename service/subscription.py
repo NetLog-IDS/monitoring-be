@@ -37,16 +37,16 @@ async def send_email(topic, values) -> None:
             if topic == "DOS":
                 body = {
                     "prediction": topic,
-                    "timestamp": values['TIMESTAMP_START'],
+                    "timestamp": datetime.fromtimestamp(values['TIMESTAMP_START']).strftime('%Y-%m-%d %H:%M:%S'),
                     "srcIp": values['IP_DST'],
-                    "timestamp_end": values['TIMESTAMP_END']
+                    "timestamp_end": datetime.fromtimestamp(values['TIMESTAMP_END']).strftime('%Y-%m-%d %H:%M:%S')
                 }  
             elif topic == "PORT_SCAN":
                 body = {
                     "prediction": topic,
-                    "timestamp": values['TIMESTAMP_START'],
+                    "timestamp": datetime.fromtimestamp(values['TIMESTAMP_START']).strftime('%Y-%m-%d %H:%M:%S'),
                     "srcIp": values['IP_SRC'],
-                    "timestamp_end": values['TIMESTAMP_END']
+                    "timestamp_end": datetime.fromtimestamp(values['TIMESTAMP_END']).strftime('%Y-%m-%d %H:%M:%S')
                 }
 
             message = MessageSchema(
