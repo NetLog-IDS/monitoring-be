@@ -150,7 +150,7 @@ async def consume_from_kafka():
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
                 values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
-                await port_scan_collection.put((values, topic))
+                await portscan_intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()
         
