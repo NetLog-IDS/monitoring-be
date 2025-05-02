@@ -154,7 +154,7 @@
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center">
                     <i class="fas fa-stream mr-2 text-primary-500 dark:text-primary-400"></i>
-                    Live Intrusion Detection
+                    Live Detected Intrusion
                 </h2>
                 <div class="flex space-x-2">
                     <div class="relative">
@@ -188,7 +188,6 @@
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Start Timestamp</th>
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">End Timestamp</th>
                             <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Intrusion Type</th>
-                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Result</th>
                         </tr>
                     </thead>
                     <tbody id="intrusion-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -527,20 +526,15 @@
             
             let data = JSON.parse(event.data);
             
-            if (data.topic && data.value) {
+            if (data.topic) {
                 const detectionType = data.topic;
-                const detectionData = data.value;
-                addDetectionToTable(detectionData, detectionType);
+                const timestampStart = data.timestamp_start;
+                const timestampEnd = data.timestamp_end;
+                const uniqueIp = data.unique_ip;
+
+                addDetectionToTable(detectionType, timestampStart, timestampEnd, uniqueIp);
                 
-                if (detectionType === 'DOS') {
-                    lastMinuteDosFlow++;
-                } else if (detectionType === 'PORT_SCAN') {
-                    lastMinutePortscanFlow++;
-                }
-                
-                if (detectionData.STATUS === 'DETECTED') {
-                    showNotification(detectionData, detectionType);
-                }
+                showNotification(detectionType)
                 
                 document.getElementById('empty-state').classList.add('hidden');
             }
@@ -549,9 +543,7 @@
                 totalDetectionCount = totalDetectionCount + data.pkt_cnt;
                 totalDosDetection = totalDosDetection + data.dos_cnt;
                 totalPortscanDetection = totalPortscanDetection + data.port_scan_cnt;
-                
-                lastMinuteDetections++;
-                
+                                
                 addChartData(data.pkt_cnt, data.dos_cnt, data.port_scan_cnt);
                 
                 document.getElementById('empty-state').classList.add('hidden');
@@ -559,42 +551,7 @@
             }
         };
 
-        function addDetectionToTable(detection, type) {
-            const timestamp = new Date().toLocaleTimeString();
-            const startTime = new Date(detection.TIMESTAMP_START * 1000).toLocaleString();
-            const endTime = new Date(detection.TIMESTAMP_END * 1000).toLocaleString();
-            
-            const newDetection = {
-                timestamp: timestamp,
-                ipSrc: detection.IP_SRC || "-",
-                ipDst: detection.IP_DST || "-",
-                startTime: startTime,
-                endTime: endTime,
-                type: type,
-                status: detection.STATUS,
-                isNew: true,
-                rawData: detection
-            };
-            
-            allIntrusionData.unshift(newDetection);
-            
-            const maxStoredEntries = 500;
-            if (allIntrusionData.length > maxStoredEntries) {
-                allIntrusionData = allIntrusionData.slice(0, maxStoredEntries);
-            }
-            
-            totalPages = Math.ceil(allIntrusionData.length / entriesPerPage);
-            
-            if (currentPage === 1) {
-                renderCurrentPage();
-            } else {
-                goToPage(1);
-            }
-            
-            updatePagination();
-        }
-
-        function showNotification(detection, type) {
+        function showNotification(type) {
             notificationCount++;
             
             const badge = document.getElementById('notification-badge');
@@ -602,7 +559,7 @@
             badge.classList.remove('hidden');
             
             const toast = document.getElementById('notification-toast');
-            document.getElementById('notification-message').textContent = `${type} attack detected from ${detection.IP_SRC}`;
+            document.getElementById('notification-message').textContent = `${type} attack detected!`;
             toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
             
             setTimeout(() => {
@@ -791,6 +748,53 @@
         let currentPage = 1;
         let totalPages = 1;
 
+        function addDetectionToTable(type, timestampStart, timestampEnd, uniqueIp) {
+            const timestamp = new Date().toLocaleTimeString();
+            const startTime = new Date(timestampStart * 1000).toLocaleString();
+            const endTime = new Date(timestampEnd * 1000).toLocaleString();
+            console.log(type, timestampStart, timestampEnd, uniqueIp)
+            let newDetection = {}
+
+            if (type === "DOS") {
+                newDetection = {
+                    timestamp: timestamp,
+                    ipSrc: "-",
+                    ipDst: uniqueIp.join(", "),
+                    startTime: startTime,
+                    endTime: endTime,
+                    type: type,
+                    isNew: true
+                };
+            } else if (type === "PORT_SCAN") {
+                newDetection = {
+                    timestamp: timestamp,
+                    ipSrc: uniqueIp.join(", "),
+                    ipDst: "-",
+                    startTime: startTime,
+                    endTime: endTime,
+                    type: type,
+                    isNew: true
+                };
+            }
+            
+            allIntrusionData.unshift(newDetection);
+            
+            const maxStoredEntries = 500;
+            if (allIntrusionData.length > maxStoredEntries) {
+                allIntrusionData = allIntrusionData.slice(0, maxStoredEntries);
+            }
+            
+            totalPages = Math.ceil(allIntrusionData.length / entriesPerPage);
+            
+            if (currentPage === 1) {
+                renderCurrentPage();
+            } else {
+                goToPage(1);
+            }
+            
+            updatePagination();
+        }
+
         function updatePagination() {
             const totalEntries = allIntrusionData.length;
             const start = (currentPage - 1) * entriesPerPage + 1;
@@ -908,29 +912,22 @@
             let row = document.createElement("tr");
             row.classList.add("hover:bg-gray-50", "dark:hover:bg-gray-700", "transition-colors", "duration-150");
             
-            if (item.status === 'DETECTED') {
-                row.classList.add('bg-red-50', 'dark:bg-red-900/10');
-                if (item.isNew) {
-                    row.classList.add('pulse-animation');
-                    setTimeout(() => {
-                        row.classList.remove('pulse-animation');
-                    }, 5000);
-                    item.isNew = false;
-                }
+            row.classList.add('bg-red-50', 'dark:bg-red-900/10');
+            if (item.isNew) {
+                row.classList.add('pulse-animation');
+                setTimeout(() => {
+                    row.classList.remove('pulse-animation');
+                }, 5000);
+                item.isNew = false;
             }
             
             row.innerHTML = `
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.timestamp}</td>
-                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipSrc || "-"}</td>
-                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipDst || "-"}</td>
+                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipSrc}</td>
+                <td class="p-4 text-sm text-gray-900 dark:text-gray-200">${item.ipDst}</td>
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.startTime}</td>
                 <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.endTime}</td>
-                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.type}</td>
-                <td class="p-4 text-sm">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${item.status === 'DETECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}">
-                        ${item.status}
-                    </span>
-                </td>     
+                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">${item.type}</td> 
             `;
             
             return row;

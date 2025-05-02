@@ -196,32 +196,45 @@ async def flows_worker():
 # Flushing
 async def flush_intrusions(buffer):
     docs = []
-    broadcasts_dos = []
-    broadcasts_port_scan = []
-    unique_src_ip = set()
-    unique_dst_ip = set()
+
+    dos_timestamp_start = 99909990000
+    dos_timestamp_end = -99909990000
+    unique_dos_dst_ip = set()
+
+    port_scan_timestamp_start = 99909990000
+    port_scan_timestamp_end = -99909990000
+    unique_portscan_src_ip = set()
+
     email_tasks = []
+
     pkt_cnt = 0
     intrusion_cnt = 0
     dos_cnt = 0
     port_scan_cnt = 0
+
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
         docs.append(data)
         pkt_cnt += 1
+
         if data["STATUS"] != "NOT DETECTED":
             intrusion_cnt += 1
+
             if data["topic"] == "DOS":
                 dos_cnt += 1
-                if values["IP_DST"] not in unique_dst_ip:
-                    unique_dst_ip.add(values["IP_DST"])
-                    broadcasts_dos.append({"topic": topic, "value": values})
+                dos_timestamp_start = min(dos_timestamp_start, values["TIMESTAMP_START"])
+                dos_timestamp_end = max(dos_timestamp_end, values["TIMESTAMP_END"])
+                if values["IP_DST"] not in unique_dos_dst_ip:
+                    unique_dos_dst_ip.add(values["IP_DST"])
+
             elif data["topic"] == "PORT_SCAN":
                 port_scan_cnt += 1
-                if values["IP_SRC"] not in unique_src_ip:
-                    unique_src_ip.add(values["IP_SRC"])
-                    broadcasts_port_scan.append({"topic": topic, "value": values})
+                port_scan_timestamp_start = min(port_scan_timestamp_start, values["TIMESTAMP_START"])
+                port_scan_timestamp_end = max(port_scan_timestamp_end, values["TIMESTAMP_END"])
+                if values["IP_SRC"] not in unique_portscan_src_ip:
+                    unique_portscan_src_ip.add(values["IP_SRC"])
+
             email_tasks.append(send_email(topic, values))
 
     await broadcast({"pkt_cnt": pkt_cnt, 
@@ -229,15 +242,25 @@ async def flush_intrusions(buffer):
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": port_scan_cnt})
 
-    for data in broadcasts_dos:
-        await broadcast(data)
-    for data in broadcasts_port_scan:
-        await broadcast(data)
+    if(unique_dos_dst_ip.__len__() > 0):
+        await broadcast({
+            "topic": "DOS",
+            "timestamp_start": dos_timestamp_start,
+            "timestamp_end": dos_timestamp_end,
+            "unique_ip": list(unique_dos_dst_ip)
+        })
+    
+    if(unique_portscan_src_ip.__len__() > 0):
+        await broadcast({
+            "topic": "PORT_SCAN",
+            "timestamp_start": port_scan_timestamp_start,
+            "timestamp_end": port_scan_timestamp_end,
+            "unique_ip": list(unique_portscan_src_ip)
+        })
 
     asyncio.gather(*email_tasks)
 
     await create_intrusion_detection_batch(docs)
-
 
 async def flush_flows(buffer):
     await create_network_flows_batch(buffer)
