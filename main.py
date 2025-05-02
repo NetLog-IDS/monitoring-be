@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 import os
 import uuid
 from fastapi.responses import JSONResponse
-from concurrent.futures import ThreadPoolExecutor
 load_dotenv(override=True)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -38,12 +37,6 @@ BATCH_INTERVAL = 0.1  # seconds
 
 # WebSocket connection manager
 manager = ConnectionManager()
-
-# ThreadPoolExecutor for email sending and flushing
-email_executor = ThreadPoolExecutor(max_workers=10)
-intrusion_flush_executor = ThreadPoolExecutor(max_workers=10)
-packets_flush_executor = ThreadPoolExecutor(max_workers=10)
-flows_flush_executor = ThreadPoolExecutor(max_workers=10)
 
 @app.on_event("startup")
 async def startup_event():
@@ -201,7 +194,7 @@ async def flows_worker():
                 buffer = []
 
 # Flushing
-async def flush_intrusions_thread(buffer):
+async def flush_intrusions(buffer):
     docs = []
     broadcasts_dos = []
     broadcasts_port_scan = []
@@ -241,20 +234,13 @@ async def flush_intrusions_thread(buffer):
     for data in broadcasts_port_scan:
         await broadcast(data)
 
-    for task in email_tasks:
-        email_executor.submit(task)
+    asyncio.gather(*email_tasks)
 
     await create_intrusion_detection_batch(docs)
 
-async def flush_intrusions(buffer):
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(intrusion_flush_executor, flush_intrusions_thread, buffer)
-
 
 async def flush_flows(buffer):
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(flows_flush_executor, create_network_flows_batch, buffer)
+    await create_network_flows_batch(buffer)
 
 async def flush_packets(buffer):
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(packets_flush_executor, create_network_packets_batch, buffer)
+    await create_network_packets_batch(buffer)
