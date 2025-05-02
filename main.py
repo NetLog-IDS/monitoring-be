@@ -175,7 +175,7 @@ async def portscan_intrusion_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(dos_intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(portscan_intrusion_queue.get(), timeout=BATCH_INTERVAL)
             buffer.append(item)
             
             if len(buffer) >= BATCH_SIZE_INTRUSIONS:
