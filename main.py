@@ -7,7 +7,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from websocket.websocket import ConnectionManager
 from service.subscription import send_email
-from service.intrusions import *
+from service.dos import *
+from service.portscan import *
 from service.flows import *
 from service.packets import *
 from service.email import *
@@ -23,7 +24,8 @@ KAFKA_BROKER = os.getenv("KAFKA_BROKER")
 TOPICS = ["network-traffic", "DOS","PORT_SCAN", "network-flows"]
 
 # Buffers
-intrusion_queue = Queue()
+dos_intrusion_queue = Queue()
+portscan_intrusion_queue = Queue()
 packets_queue = Queue()
 flows_queue = Queue()
 email_queue = Queue()
@@ -40,7 +42,8 @@ manager = ConnectionManager()
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(intrusion_worker())
+    asyncio.create_task(dos_intrusion_worker())
+    asyncio.create_task(portscan_intrusion_worker())
     asyncio.create_task(consume_from_kafka())
     asyncio.create_task(packets_worker())
     asyncio.create_task(flows_worker())
@@ -63,7 +66,12 @@ async def packets(request: Request):
 
 @app.get("/intrusions")
 async def intrusions(request: Request, detected: bool = None):
-    intrusions = await get_all_intrusion_results(detected=detected)
+    dos = await get_all_dos_intrusion_results(detected=detected)
+    portscan = await get_all_portscan_intrusion_results(detected=detected)
+    intrusions = {
+        "DOS": dos,
+        "PORT_SCAN": portscan
+    }
     return JSONResponse(content=intrusions)
 
 @app.get("/network-traffic")
@@ -75,11 +83,6 @@ async def get_network_traffic(request: Request, detected: bool = None):
 async def get_network_flow(request: Request, detected: bool = None):
     flows = await get_network_flows()
     return JSONResponse(content=flows)
-
-@app.get("/intrusions/delete")
-async def delete_intrusions(request: Request):
-    await delete_all_intrusion_results()
-    return {"message": "Intrusions deleted successfully!"}
 
 # WebSocket
 async def broadcast(data):
@@ -138,30 +141,52 @@ async def consume_from_kafka():
                 await packets_queue.put(values)
             elif topic == "network-flows":
                 await flows_queue.put(values)
-            else:
+            elif topic == "DOS":
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
                 values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
-                await intrusion_queue.put((values, topic))
+                await dos_intrusion_queue.put((values, topic))
+            elif topic == "PORT_SCAN":
+                values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
+                values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
+                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
+                await port_scan_collection.put((values, topic))
     finally:
         await consumer.stop()
         
 # Worker for flushing from buffer
-async def intrusion_worker():
+async def dos_intrusion_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(dos_intrusion_queue.get(), timeout=BATCH_INTERVAL)
             buffer.append(item)
             
             if len(buffer) >= BATCH_SIZE_INTRUSIONS:
-                await flush_intrusions(buffer)
+                await flush_dos_intrusions(buffer)
                 buffer = []
                 
         except asyncio.TimeoutError:
             if buffer:
-                await flush_intrusions(buffer)
+                await flush_dos_intrusions(buffer)
                 buffer = []
+
+async def portscan_intrusion_worker():
+    buffer = []
+    while True:
+        try:
+            item = await asyncio.wait_for(dos_intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            buffer.append(item)
+            
+            if len(buffer) >= BATCH_SIZE_INTRUSIONS:
+                await flush_portscan_intrusions(buffer)
+                buffer = []
+                
+        except asyncio.TimeoutError:
+            if buffer:
+                await flush_portscan_intrusions(buffer)
+                buffer = []
+                
 
 async def packets_worker():
     buffer = []
@@ -194,23 +219,18 @@ async def flows_worker():
                 buffer = []
 
 # Flushing
-async def flush_intrusions(buffer):
+async def flush_dos_intrusions(buffer):
     docs = []
 
     dos_timestamp_start = 99909990000
     dos_timestamp_end = -99909990000
     unique_dos_dst_ip = set()
 
-    port_scan_timestamp_start = 99909990000
-    port_scan_timestamp_end = -99909990000
-    unique_portscan_src_ip = set()
-
     email_tasks = []
 
     pkt_cnt = 0
     intrusion_cnt = 0
     dos_cnt = 0
-    port_scan_cnt = 0
 
     for values, topic in buffer:
         data = values.copy()
@@ -221,26 +241,18 @@ async def flush_intrusions(buffer):
         if data["STATUS"] != "NOT DETECTED":
             intrusion_cnt += 1
 
-            if data["topic"] == "DOS":
-                dos_cnt += 1
-                dos_timestamp_start = min(dos_timestamp_start, values["TIMESTAMP_START"])
-                dos_timestamp_end = max(dos_timestamp_end, values["TIMESTAMP_END"])
-                if values["IP_DST"] not in unique_dos_dst_ip:
-                    unique_dos_dst_ip.add(values["IP_DST"])
-
-            elif data["topic"] == "PORT_SCAN":
-                port_scan_cnt += 1
-                port_scan_timestamp_start = min(port_scan_timestamp_start, values["TIMESTAMP_START"])
-                port_scan_timestamp_end = max(port_scan_timestamp_end, values["TIMESTAMP_END"])
-                if values["IP_SRC"] not in unique_portscan_src_ip:
-                    unique_portscan_src_ip.add(values["IP_SRC"])
+            dos_cnt += 1
+            dos_timestamp_start = min(dos_timestamp_start, values["TIMESTAMP_START"])
+            dos_timestamp_end = max(dos_timestamp_end, values["TIMESTAMP_END"])
+            if values["IP_DST"] not in unique_dos_dst_ip:
+                unique_dos_dst_ip.add(values["IP_DST"])
 
             email_tasks.append(send_email(topic, values))
 
     await broadcast({"pkt_cnt": pkt_cnt, 
                      "intrusion_cnt": intrusion_cnt, 
                      "dos_cnt": dos_cnt, 
-                     "port_scan_cnt": port_scan_cnt})
+                     "port_scan_cnt": 0})
 
     if(unique_dos_dst_ip.__len__() > 0):
         await broadcast({
@@ -249,6 +261,44 @@ async def flush_intrusions(buffer):
             "timestamp_end": dos_timestamp_end,
             "unique_ip": list(unique_dos_dst_ip)
         })
+
+    asyncio.gather(*email_tasks)
+
+    await create_dos_intrusion_detection_batch(docs)
+
+async def flush_portscan_intrusions(buffer):
+    docs = []
+
+    port_scan_timestamp_start = 99909990000
+    port_scan_timestamp_end = -99909990000
+    unique_portscan_src_ip = set()
+
+    email_tasks = []
+
+    pkt_cnt = 0
+    intrusion_cnt = 0
+    port_scan_cnt = 0
+
+    for values, topic in buffer:
+        data = values.copy()
+        docs.append(data)
+        pkt_cnt += 1
+
+        if data["STATUS"] != "NOT DETECTED":
+            intrusion_cnt += 1
+
+            port_scan_cnt += 1
+            port_scan_timestamp_start = min(port_scan_timestamp_start, values["TIMESTAMP_START"])
+            port_scan_timestamp_end = max(port_scan_timestamp_end, values["TIMESTAMP_END"])
+            if values["IP_SRC"] not in unique_portscan_src_ip:
+                unique_portscan_src_ip.add(values["IP_SRC"])
+
+            email_tasks.append(send_email(topic, values))
+
+    await broadcast({"pkt_cnt": pkt_cnt, 
+                     "intrusion_cnt": intrusion_cnt, 
+                     "dos_cnt": 0, 
+                     "port_scan_cnt": port_scan_cnt})
     
     if(unique_portscan_src_ip.__len__() > 0):
         await broadcast({
@@ -260,7 +310,7 @@ async def flush_intrusions(buffer):
 
     asyncio.gather(*email_tasks)
 
-    await create_intrusion_detection_batch(docs)
+    await create_portscan_intrusion_detection_batch(docs)
 
 async def flush_flows(buffer):
     await create_network_flows_batch(buffer)
