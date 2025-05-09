@@ -32,10 +32,10 @@ email_queue = Queue()
 broadcast_queue = Queue()
 
 # Batch sizes and intervals for buffering
-BATCH_SIZE_INTRUSIONS = 1000
-BATCH_SIZE_PACKETS = 100000
-BATCH_SIZE_FLOWS = 10000
-BATCH_INTERVAL = 0.1  # seconds
+BUFFER_SIZE_INTRUSIONS = 1000
+BUFFER_SIZE_PACKETS = 100000
+BUFFER_SIZE_FLOWS = 10000
+BUFFER_INTERVAL = 0.1  # seconds
 
 # WebSocket connection manager
 manager = ConnectionManager()
@@ -62,7 +62,6 @@ async def flows(request: Request):
 async def packets(request: Request):
     packets = await get_network_packets()
     return JSONResponse(content=packets)
-    
 
 @app.get("/intrusions")
 async def intrusions(request: Request, detected: bool = None):
@@ -83,23 +82,6 @@ async def get_network_traffic(request: Request, detected: bool = None):
 async def get_network_flow(request: Request, detected: bool = None):
     flows = await get_network_flows()
     return JSONResponse(content=flows)
-
-# WebSocket
-async def broadcast(data):
-    try:
-        await manager.broadcast_json(data)
-    except Exception as e:
-        print(f"⚠️ WebSocket Error: {e}")
-
-
-@app.websocket("/websocket")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            await websocket.receive_text() 
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
 
 # Email Subscription
 @app.post('/subscribe')
@@ -123,8 +105,24 @@ async def unsubscribe(email: str = None):
             raise HTTPException(status_code=404, detail="Email not found!")
         else:
             raise HTTPException(status_code=400, detail=str(e)) 
+        
+@app.websocket("/websocket")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text() 
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        
+# WebSocket
+async def broadcast(data):
+    try:
+        await manager.broadcast_json(data)
+    except Exception as e:
+        print(f"⚠️ WebSocket Error: {e}")
 
-# Kafka related
+# Kafka Consumer
 async def consume_from_kafka():
     consumer = AIOKafkaConsumer(*TOPICS, 
                                 bootstrap_servers=KAFKA_BROKER, 
@@ -154,15 +152,15 @@ async def consume_from_kafka():
     finally:
         await consumer.stop()
         
-# Worker for flushing from buffer
+# Worker for flushing from buffer ----------------------------------------------------------------------
 async def dos_intrusion_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(dos_intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(dos_intrusion_queue.get(), timeout=BUFFER_INTERVAL)
             buffer.append(item)
             
-            if len(buffer) >= BATCH_SIZE_INTRUSIONS:
+            if len(buffer) >= BUFFER_SIZE_INTRUSIONS:
                 await flush_dos_intrusions(buffer)
                 buffer = []
                 
@@ -175,10 +173,10 @@ async def portscan_intrusion_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(portscan_intrusion_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(portscan_intrusion_queue.get(), timeout=BUFFER_INTERVAL)
             buffer.append(item)
             
-            if len(buffer) >= BATCH_SIZE_INTRUSIONS:
+            if len(buffer) >= BUFFER_SIZE_INTRUSIONS:
                 await flush_portscan_intrusions(buffer)
                 buffer = []
                 
@@ -192,10 +190,10 @@ async def packets_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(packets_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(packets_queue.get(), timeout=BUFFER_INTERVAL)
             buffer.append(item)
             
-            if len(buffer) >= BATCH_SIZE_PACKETS:
+            if len(buffer) >= BUFFER_SIZE_PACKETS:
                 await flush_packets(buffer)
                 buffer = []
         except asyncio.TimeoutError:
@@ -207,10 +205,10 @@ async def flows_worker():
     buffer = []
     while True:
         try:
-            item = await asyncio.wait_for(flows_queue.get(), timeout=BATCH_INTERVAL)
+            item = await asyncio.wait_for(flows_queue.get(), timeout=BUFFER_INTERVAL)
             buffer.append(item)
 
-            if len(buffer) >= BATCH_SIZE_FLOWS:
+            if len(buffer) >= BUFFER_SIZE_FLOWS:
                 await flush_flows(buffer)
                 buffer = []
         except asyncio.TimeoutError:
@@ -228,19 +226,16 @@ async def flush_dos_intrusions(buffer):
 
     email_tasks = []
 
-    pkt_cnt = 0
-    intrusion_cnt = 0
+    detection_cnt = 0
     dos_cnt = 0
 
     for values, topic in buffer:
         data = values.copy()
         data["topic"] = topic
         docs.append(data)
-        pkt_cnt += 1
+        detection_cnt += 1
 
         if data["STATUS"] != "NOT DETECTED":
-            intrusion_cnt += 1
-
             dos_cnt += 1
             dos_timestamp_start = min(dos_timestamp_start, values["TIMESTAMP_START"])
             dos_timestamp_end = max(dos_timestamp_end, values["TIMESTAMP_END"])
@@ -249,8 +244,8 @@ async def flush_dos_intrusions(buffer):
 
             email_tasks.append(send_email(topic, values))
 
-    await broadcast({"pkt_cnt": pkt_cnt, 
-                     "intrusion_cnt": intrusion_cnt, 
+    await broadcast({"pkt_cnt": detection_cnt, 
+                     "intrusion_cnt": dos_cnt, 
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": 0})
 
@@ -262,6 +257,7 @@ async def flush_dos_intrusions(buffer):
             "unique_ip": list(unique_dos_dst_ip)
         })
 
+    # Send email notifications for each detected DOS intrusion
     asyncio.gather(*email_tasks)
 
     await create_dos_intrusion_detection_batch(docs)
@@ -275,18 +271,15 @@ async def flush_portscan_intrusions(buffer):
 
     email_tasks = []
 
-    pkt_cnt = 0
-    intrusion_cnt = 0
+    detection_cnt = 0
     port_scan_cnt = 0
 
     for values, topic in buffer:
         data = values.copy()
         docs.append(data)
-        pkt_cnt += 1
+        detection_cnt += 1
 
         if data["STATUS"] != "NOT DETECTED":
-            intrusion_cnt += 1
-
             port_scan_cnt += 1
             port_scan_timestamp_start = min(port_scan_timestamp_start, values["TIMESTAMP_START"])
             port_scan_timestamp_end = max(port_scan_timestamp_end, values["TIMESTAMP_END"])
@@ -295,8 +288,8 @@ async def flush_portscan_intrusions(buffer):
 
             email_tasks.append(send_email(topic, values))
 
-    await broadcast({"pkt_cnt": pkt_cnt, 
-                     "intrusion_cnt": intrusion_cnt, 
+    await broadcast({"pkt_cnt": detection_cnt, 
+                     "intrusion_cnt": port_scan_cnt, 
                      "dos_cnt": 0, 
                      "port_scan_cnt": port_scan_cnt})
     
