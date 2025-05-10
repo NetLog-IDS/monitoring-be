@@ -6,7 +6,7 @@ db = get_database()
 email_collection = db["email_subscription"]
 
 async def create_email_subscription(email: str):
-    data = {"email": email}
+    data = {"email": email, "last_sent": int(datetime.now(timezone.utc).timestamp())}
     result = await email_collection.insert_one(data)
     return {"inserted_id": str(result.inserted_id)}
 
