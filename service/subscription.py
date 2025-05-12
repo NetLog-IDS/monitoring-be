@@ -17,7 +17,7 @@ conf = ConnectionConfig(
     TEMPLATE_FOLDER = './templates',
 )
 
-async def send_email(topic, values) -> None:
+async def send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst) -> None:
 
     emails_dict = await get_email_subscriptions()
     curr_time = int(datetime.now(timezone.utc).timestamp()) 
@@ -28,24 +28,15 @@ async def send_email(topic, values) -> None:
             email.append(emails['email'])
             email_id.append(emails['_id'])
 
-    if len(email) <= 0:
-        return
+    print("Email sent to: ", email)
 
     if len(email) > 0:
-        if topic == "DOS":
-            body = {
+        body = {
                 "prediction": topic,
-                "timestamp": datetime.fromtimestamp(values['TIMESTAMP_START']).strftime('%Y-%m-%d %H:%M:%S'),
-                "srcIp": values['IP_DST'],
-                "timestamp_end": datetime.fromtimestamp(values['TIMESTAMP_END']).strftime('%Y-%m-%d %H:%M:%S')
-            }  
-        elif topic == "PORT_SCAN":
-            body = {
-                "prediction": topic,
-                "timestamp": datetime.fromtimestamp(values['TIMESTAMP_START']).strftime('%Y-%m-%d %H:%M:%S'),
-                "srcIp": values['IP_SRC'],
-                "timestamp_end": datetime.fromtimestamp(values['TIMESTAMP_END']).strftime('%Y-%m-%d %H:%M:%S')
-            }
+                "timestamp": datetime.fromtimestamp(dos_timestamp_start).strftime('%Y-%m-%d %H:%M:%S'),
+                "srcIp": " ,".join(ip_lst),
+                "timestamp_end": datetime.fromtimestamp(dos_timestamp_end).strftime('%Y-%m-%d %H:%M:%S')
+        }
 
         message = MessageSchema(
             subject="Intrusion Detected!",

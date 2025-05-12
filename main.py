@@ -224,8 +224,6 @@ async def flush_dos_intrusions(buffer):
     dos_timestamp_end = -99909990000
     unique_dos_dst_ip = set()
 
-    email_tasks = []
-
     detection_cnt = 0
     dos_cnt = 0
 
@@ -242,23 +240,23 @@ async def flush_dos_intrusions(buffer):
             if values["IP_DST"] not in unique_dos_dst_ip:
                 unique_dos_dst_ip.add(values["IP_DST"])
 
-            email_tasks.append(send_email(topic, values))
-
     await broadcast({"pkt_cnt": detection_cnt, 
                      "intrusion_cnt": dos_cnt, 
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": 0})
+    
+    ip_lst = list(unique_dos_dst_ip)
 
-    if(unique_dos_dst_ip.__len__() > 0):
+    if(len(ip_lst) > 0):
         await broadcast({
             "topic": "DOS",
             "timestamp_start": dos_timestamp_start,
             "timestamp_end": dos_timestamp_end,
-            "unique_ip": list(unique_dos_dst_ip)
+            "unique_ip": ip_lst
         })
 
-    # Send email notifications for each detected DOS intrusion
-    asyncio.gather(*email_tasks)
+        # Send email notifications for each detected DOS intrusion
+        asyncio.gather(send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst))
 
     await create_dos_intrusion_detection_batch(docs)
 
@@ -268,8 +266,6 @@ async def flush_portscan_intrusions(buffer):
     port_scan_timestamp_start = 99909990000
     port_scan_timestamp_end = -99909990000
     unique_portscan_src_ip = set()
-
-    email_tasks = []
 
     detection_cnt = 0
     port_scan_cnt = 0
@@ -286,22 +282,22 @@ async def flush_portscan_intrusions(buffer):
             if values["IP_SRC"] not in unique_portscan_src_ip:
                 unique_portscan_src_ip.add(values["IP_SRC"])
 
-            email_tasks.append(send_email(topic, values))
-
     await broadcast({"pkt_cnt": detection_cnt, 
                      "intrusion_cnt": port_scan_cnt, 
                      "dos_cnt": 0, 
                      "port_scan_cnt": port_scan_cnt})
     
-    if(unique_portscan_src_ip.__len__() > 0):
+    ip_lst = list(unique_portscan_src_ip)
+    
+    if(len(ip_lst) > 0):
         await broadcast({
             "topic": "PORT_SCAN",
             "timestamp_start": port_scan_timestamp_start,
             "timestamp_end": port_scan_timestamp_end,
-            "unique_ip": list(unique_portscan_src_ip)
+            "unique_ip": ip_lst
         })
-
-    asyncio.gather(*email_tasks)
+        
+        asyncio.gather(send_email(topic, port_scan_timestamp_start, port_scan_timestamp_end, ip_lst))
 
     await create_portscan_intrusion_detection_batch(docs)
 
