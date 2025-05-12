@@ -28,8 +28,6 @@ async def send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst) -> N
             email.append(emails['email'])
             email_id.append(emails['_id'])
 
-    print("Email sent to: ", email)
-
     if len(email) > 0:
         body = {
                 "prediction": topic,
