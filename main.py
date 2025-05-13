@@ -244,28 +244,23 @@ async def flush_dos_intrusions(buffer):
             if values["IP_DST"] not in unique_dos_dst_ip:
                 unique_dos_dst_ip.add(values["IP_DST"])
 
-    print("sending broadcast", datetime.now(timezone.utc).timestamp())
     await broadcast({"pkt_cnt": detection_cnt, 
                      "intrusion_cnt": dos_cnt, 
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": 0})
-    print("acknowledged", datetime.now(timezone.utc).timestamp())
 
     ip_lst = list(unique_dos_dst_ip)
 
     if(len(ip_lst) > 0):
-        print("sending broadcast DOS", datetime.now(timezone.utc).timestamp())
         await broadcast({
             "topic": "DOS",
             "timestamp_start": dos_timestamp_start,
             "timestamp_end": dos_timestamp_end,
             "unique_ip": ip_lst
         })
-        print("acknowledged DOS", datetime.now(timezone.utc).timestamp())
 
         asyncio.gather(send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst))
 
-    print("Insert to DB", datetime.now(timezone.utc).timestamp())
     await create_dos_intrusion_detection_batch(docs)
 
 async def flush_portscan_intrusions(buffer):

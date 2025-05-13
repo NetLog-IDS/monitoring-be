@@ -37,7 +37,6 @@ class ConnectionManager:
 
         try:
             await asyncio.wait_for(self._wait_for_acks(message_id), timeout=timeout)
-            print(f"All clients acknowledged message {message_id}")
         except asyncio.TimeoutError:
             print(f"Timeout waiting for ACKs for message {message_id}")
         finally:
@@ -48,6 +47,5 @@ class ConnectionManager:
             await asyncio.sleep(0.1)
 
     def acknowledge(self, websocket: WebSocket, message_id: str):
-        print(f"{websocket.client} acknowledged message {message_id}")
         if message_id in self.pending_acks:
             self.pending_acks[message_id].discard(websocket)
