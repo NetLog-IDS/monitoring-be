@@ -139,19 +139,19 @@ async def consume_from_kafka():
             topic = msg.topic
             if topic == "network-traffic":
                 values['timestamp'] = int(values['timestamp']) // 1_000_000
-                values['sniff_time'] = int(values['sniff_time']) // 1_000_000
+                values['sniff_time'] = int(values['sniff_time']) / 1_000_000
                 await packets_queue.put(values)
             elif topic == "network-flows":
                 await flows_queue.put(values)
             elif topic == "DOS":
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
-                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
+                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) / 1_000_000
                 await dos_intrusion_queue.put((values, topic))
             elif topic == "PORT_SCAN":
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
-                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) // 1_000_000
+                values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) / 1_000_000
                 await portscan_intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()

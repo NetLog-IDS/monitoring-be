@@ -5,7 +5,7 @@ db = get_database()
 dos_collection = db["dos"]
 
 async def create_dos_intrusion_detection_batch(docs):
-    current_time = int(datetime.now(timezone.utc).timestamp())
+    current_time = float(datetime.now(timezone.utc).timestamp())
     for doc in docs:
         doc["MONITORING_TIME_END"] = current_time
         doc['TIME_DIFF_SECONDS'] = doc['MONITORING_TIME_END'] - doc['SNIFF_TIMESTAMP_START']
