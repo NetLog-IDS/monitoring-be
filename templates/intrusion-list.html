@@ -537,6 +537,10 @@
                 showNotification(detectionType)
                 
                 document.getElementById('empty-state').classList.add('hidden');
+                socket.send(JSON.stringify({
+                    "type": "ack",
+                    "message_id": data.message_id
+                }));
             }
             
             if (data.pkt_cnt !== undefined) {
@@ -547,7 +551,11 @@
                 addChartData(data.pkt_cnt, data.dos_cnt, data.port_scan_cnt);
                 
                 document.getElementById('empty-state').classList.add('hidden');
-                return;
+
+                socket.send(JSON.stringify({
+                    "type": "ack",
+                    "message_id": data.message_id
+                }));
             }
         };
 

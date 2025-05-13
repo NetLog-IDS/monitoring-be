@@ -111,14 +111,18 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text() 
+            data = await websocket.receive_json()
+            if data.get("type") == "ack":
+                manager.acknowledge(websocket, data["message_id"])
+            else:
+                pass
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         
 # WebSocket
 async def broadcast(data):
     try:
-        await manager.broadcast_json(data)
+        await manager.broadcast_json_with_ack(data, 10)
     except Exception as e:
         print(f"⚠️ WebSocket Error: {e}")
 
@@ -240,11 +244,13 @@ async def flush_dos_intrusions(buffer):
             if values["IP_DST"] not in unique_dos_dst_ip:
                 unique_dos_dst_ip.add(values["IP_DST"])
 
+    print("sending broadcast")
     await broadcast({"pkt_cnt": detection_cnt, 
                      "intrusion_cnt": dos_cnt, 
                      "dos_cnt": dos_cnt, 
                      "port_scan_cnt": 0})
-    
+    print("acknowledged")
+
     ip_lst = list(unique_dos_dst_ip)
 
     if(len(ip_lst) > 0):
@@ -255,7 +261,6 @@ async def flush_dos_intrusions(buffer):
             "unique_ip": ip_lst
         })
 
-        # Send email notifications for each detected DOS intrusion
         asyncio.gather(send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst))
 
     await create_dos_intrusion_detection_batch(docs)
