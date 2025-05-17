@@ -18,7 +18,16 @@ conf = ConnectionConfig(
 )
 
 async def send_email(topic, dos_timestamp_start, dos_timestamp_end, ip_lst) -> None:
+    """
+    This function sends an email to all subscribers with a time difference of more than 1 minute from the last email sent. The 1 minute time difference is to ensure that the email is not sent too frequently and the email service think it is spam.
 
+    Parameters:
+    topic (str): The type of intrusion detected.
+    dos_timestamp_start (int): The start time of the intrusion.
+    dos_timestamp_end (int): The end time of the intrusion.
+    ip_lst (list): A list of IP addresses involved in the intrusion.
+    """
+    
     emails_dict = await get_email_subscriptions()
     curr_time = int(datetime.now(timezone.utc).timestamp()) 
     email = []
