@@ -36,13 +36,13 @@ class ConnectionManager:
             await conn.send_json(message)
 
         try:
-            await asyncio.wait_for(self._wait_for_acks(message_id), timeout=timeout)
+            await asyncio.wait_for(self.wait_for_acks(message_id), timeout=timeout)
         except asyncio.TimeoutError:
             print(f"Timeout waiting for ACKs for message {message_id}")
         finally:
             self.pending_acks.pop(message_id, None)
 
-    async def _wait_for_acks(self, message_id: str):
+    async def wait_for_acks(self, message_id: str):
         while self.pending_acks[message_id]:
             await asyncio.sleep(0.1)
 

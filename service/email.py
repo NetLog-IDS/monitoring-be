@@ -6,6 +6,10 @@ db = get_database()
 email_collection = db["email_subscription"]
 
 async def create_email_subscription(email: str):
+    existing_email = await email_collection.find_one({"email": email})
+    if existing_email:
+        raise ValueError("Email already subscribed.")
+    
     data = {"email": email, "last_sent": int(datetime.now(timezone.utc).timestamp())}
     result = await email_collection.insert_one(data)
     return {"inserted_id": str(result.inserted_id)}
