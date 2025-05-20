@@ -238,7 +238,6 @@ async def consume_from_kafka():
             elif topic == "network-flows":
                 await flows_queue.put(values)
             elif topic == "DOS":
-                print("masuk dos")
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) / 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) / 1_000_000
                 values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) / 1_000_000
