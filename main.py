@@ -32,9 +32,9 @@ email_queue = Queue()
 broadcast_queue = Queue()
 
 # Batch sizes and intervals for buffering
-BUFFER_SIZE_INTRUSIONS = 1000
-BUFFER_SIZE_PACKETS = 100000
-BUFFER_SIZE_FLOWS = 10000
+BUFFER_SIZE_INTRUSIONS = 100
+BUFFER_SIZE_PACKETS = 10000
+BUFFER_SIZE_FLOWS = 1000
 BUFFER_INTERVAL = 0.1  # seconds
 
 # WebSocket connection manager
@@ -241,11 +241,13 @@ async def consume_from_kafka():
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
                 values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) / 1_000_000
+                values['MONITORING_ENTER_TIME'] = float(datetime.now(timezone.utc).timestamp())
                 await dos_intrusion_queue.put((values, topic))
             elif topic == "PORT_SCAN":
                 values['TIMESTAMP_START'] = int(values['TIMESTAMP_START']) // 1_000_000
                 values['TIMESTAMP_END'] = int(values['TIMESTAMP_END']) // 1_000_000
                 values['SNIFF_TIMESTAMP_START'] = int(values['SNIFF_TIMESTAMP_START']) / 1_000_000
+                values['MONITORING_ENTER_TIME'] = float(datetime.now(timezone.utc).timestamp())
                 await portscan_intrusion_queue.put((values, topic))
     finally:
         await consumer.stop()
@@ -393,9 +395,11 @@ async def flush_dos_intrusions(buffer):
     detection_cnt = 0
     dos_cnt = 0
 
+    current_time = float(datetime.now(timezone.utc).timestamp())
+
     for values, topic in buffer:
         data = values.copy()
-        data["topic"] = topic
+        data["MONITORING_TIME_BEFORE_BROADCAST"] = current_time
         docs.append(data)
         detection_cnt += 1
 
@@ -453,8 +457,11 @@ async def flush_portscan_intrusions(buffer):
     detection_cnt = 0
     port_scan_cnt = 0
 
+    current_time = float(datetime.now(timezone.utc).timestamp())
+
     for values, topic in buffer:
         data = values.copy()
+        data["MONITORING_TIME_BEFORE_BROADCAST"] = current_time
         docs.append(data)
         detection_cnt += 1
 
