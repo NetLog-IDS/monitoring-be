@@ -54,47 +54,20 @@ async def startup_event():
 
 @app.get("/")
 async def home(request: Request):
-    """
-    Renders the home page of the application which displays the User Interface for Intrusion Detection System.
-    The home page is served as an HTML template and is rendered using the FastAPI Templating engine.
-    """
     return templates.TemplateResponse("intrusion-list.html", {"request": request})
 
 @app.get("/flows")
 async def flows(request: Request):
-    """
-    Handles HTTP GET requests to the /flows endpoint that retrieves a list of network flows from the database and returns them as a JSON response.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the list of network flows.
-    """
-
     flows = await get_network_flows()
     return JSONResponse(content=flows)
 
 @app.get("/packets")
 async def packets(request: Request):
-    """
-    Handles HTTP GET requests to the /packets endpoint that retrieves a list of network packets from the database and returns them as a JSON response.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the list of network packets.
-    """
-
     packets = await get_network_packets()
     return JSONResponse(content=packets)
 
 @app.get("/intrusions")
 async def intrusions(request: Request, detected: bool = None):
-    """
-    Handles HTTP GET requests to the /intrusions endpoint that retrieves a list of intrusions detection result from the database and returns them as a JSON response.
-
-    Args:
-        detected (bool): Filter detected intrusions. If True, only detected intrusions are returned. Otherwise, all intrusions are returned.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the list of detected intrusions.
-    """
     dos = await get_all_dos_intrusion_results(detected=detected)
     portscan = await get_all_portscan_intrusion_results(detected=detected)
     intrusions = {
@@ -105,12 +78,6 @@ async def intrusions(request: Request, detected: bool = None):
 
 @app.get("/network-traffic")
 async def get_network_traffic(request: Request):
-    """
-    Handles HTTP GET requests to the /network-traffic endpoint that retrieves a list of network traffics from the database and returns them as a JSON response.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the list of network traffics.
-    """
     traffics = await get_network_packets()
     return JSONResponse(content=traffics)
 
@@ -122,18 +89,6 @@ async def get_network_flow(request: Request, detected: bool = None):
 # Email Subscription
 @app.post('/subscribe')
 async def subscribe(email: str = Form(...)):
-    """
-    Handles HTTP POST requests to the /subscribe endpoint that creates a new email subscription and returns a JSON response.
-
-    Args:
-        email (str): The email address to subscribe.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the message "Subscribed successfully!"
-
-    Raises:
-        HTTPException: If the email already exists in the database, an HTTPException will be raised with a 400 status code and a detail message of "Email already subscribed!".
-    """
     try:
         await create_email_subscription(email)
         return {"message": "Subscribed successfully!"}
@@ -145,18 +100,6 @@ async def subscribe(email: str = Form(...)):
 
 @app.delete('/unsubscribe/{email}')
 async def unsubscribe(email: str = None):
-    """
-    Handles HTTP DELETE requests to the /unsubscribe/{email} endpoint that deletes an existing email subscription and returns a JSON response.
-
-    Args:
-        email (str): The email address to unsubscribe.
-
-    Returns:
-        JSONResponse: A response object in JSON containing the message "Unsubscribed successfully!"
-    
-    Raises:
-        HTTPException: If the email does not exist in the database, an HTTPException will be raised with a 404 status code and a detail message of "Email not found!".
-    """
     try:
         await delete_email_subscription(email)
         return {"message": "Unsubscribed successfully!"}
@@ -168,12 +111,6 @@ async def unsubscribe(email: str = None):
         
 @app.websocket("/websocket")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    Handles WebSocket connections to the /websocket endpoint, allowing the client to receive broadcasted data and send acknowledgement messages.
-
-    Args:
-        websocket (WebSocket): The WebSocket connection object.
-    """
     await manager.connect(websocket)
     try:
         while True:
@@ -187,15 +124,6 @@ async def websocket_endpoint(websocket: WebSocket):
         
 # WebSocket
 async def broadcast(data):
-    """
-    Broadcasts data to all connected WebSocket clients with an acknowledgement timeout of 10 seconds.
-
-    Args:
-        data (dict): The data to broadcast to all connected WebSocket clients.
-
-    Raises:
-        Exception: If an error occurs while broadcasting the data to all connected WebSocket clients.
-    """
     try:
         await manager.broadcast_json_with_ack(data, 10)
     except Exception as e:
@@ -203,25 +131,6 @@ async def broadcast(data):
 
 # Kafka Consumer
 async def consume_from_kafka():
-    """
-    This worker consumes messages from Kafka topics and processes them based on the topic type.
-
-    This asynchronous function connects to a Kafka broker, subscribes to specified topics,
-    and continuously consumes messages. The messages are decoded, parsed, and enqueued
-    into respective processing queues based on their topic type.
-
-    Topics handled:
-    - "network-traffic": Processes network traffic messages and enqueues them into the packets queue.
-    - "network-flows": Processes network flow messages and enqueues them into the flows queue.
-    - "DOS": Processes DOS intrusion messages, converts timestamps, and enqueues them into the DOS intrusion queue.
-    - "PORT_SCAN": Processes port scan intrusion messages, converts timestamps, and enqueues them into the port scan intrusion queue.
-
-    Note that timestamps are adjusted from nanoseconds to seconds in float for consistency.
-
-    Raises:
-        Exception: If an error occurs during the consumption of messages.
-    """
-
     consumer = AIOKafkaConsumer(*TOPICS, 
                                 bootstrap_servers=KAFKA_BROKER, 
                                 group_id=f"fastapi-group-{uuid.uuid4()}",
@@ -254,18 +163,6 @@ async def consume_from_kafka():
         
 # Worker for flushing from buffer ----------------------------------------------------------------------
 async def dos_intrusion_worker():
-    """
-    This worker consumes messages from the dos_intrusion_queue and buffers them into memory.
-    Once the buffer is full or after a specified interval, it flushes the buffer to the database.
-
-    The buffer size is determined by BUFFER_SIZE_INTRUSIONS and the interval is determined by BUFFER_INTERVAL.
-
-    The worker continuously consumes messages from the dos_intrusion_queue and flushes them to the database
-    until it is stopped.
-
-    Raises:
-        Exception TimeoutError: If there's no data enter the buffer during the BUFFER_INTERVAL.
-    """
     buffer = []
     while True:
         try:
@@ -282,19 +179,6 @@ async def dos_intrusion_worker():
                 buffer = []
 
 async def portscan_intrusion_worker():
-    """
-    This worker consumes messages from the portscan_intrusion_queue and buffers them into memory.
-    Once the buffer is full or after a specified interval, it flushes the buffer to the database.
-
-    The buffer size is determined by BUFFER_SIZE_INTRUSIONS and the interval is determined by BUFFER_INTERVAL.
-
-    The worker continuously consumes messages from the portscan_intrusion_queue and flushes them to the database
-    until it is stopped.
-
-    Raises:
-        Exception TimeoutError: If there's no data enter the buffer during the BUFFER_INTERVAL.
-    """
-
     buffer = []
     while True:
         try:
@@ -312,18 +196,6 @@ async def portscan_intrusion_worker():
                 
 
 async def packets_worker():
-    """
-    This worker consumes messages from the packets_queue and buffers them into memory.
-    Once the buffer is full or after a specified interval, it flushes the buffer to the database.
-
-    The buffer size is determined by BUFFER_SIZE_PACKETS and the interval is determined by BUFFER_INTERVAL.
-
-    The worker continuously consumes messages from the packets_queue and flushes them to the database
-    until it is stopped.
-
-    Raises:
-        Exception TimeoutError: If there's no data enter the buffer during the BUFFER_INTERVAL.
-    """
     buffer = []
     while True:
         try:
@@ -339,19 +211,6 @@ async def packets_worker():
                 buffer = []
 
 async def flows_worker():
-    """
-    This worker consumes messages from the flows_queue and buffers them into memory.
-    Once the buffer is full or after a specified interval, it flushes the buffer to the database.
-
-    The buffer size is determined by BUFFER_SIZE_FLOWS and the interval is determined by BUFFER_INTERVAL.
-
-    The worker continuously consumes messages from the flows_queue and flushes them to the database
-    until it is stopped.
-
-    Raises:
-        Exception TimeoutError: If there's no data enter the buffer during the BUFFER_INTERVAL.
-    """
-
     buffer = []
     while True:
         try:
@@ -368,24 +227,6 @@ async def flows_worker():
 
 # Flushing
 async def flush_dos_intrusions(buffer):
-    """
-    Flushes the given buffer of DoS intrusions to the database.
-
-    The function takes a list of tuples, where each tuple contains the values of an intrusion
-    detection event and the topic of the event.
-
-    The function is responsible for:
-
-    - Creating a list of documents to be inserted into the database
-    - Extracting the minimum and maximum timestamps of the DoS intrusion events
-    - Extracting the unique destination IP addresses of the DoS intrusion events
-    - Sending a broadcast message with the count of all detection events, the count of DoS events, and the count of PortScan events
-    - Sending a broadcast message with the topic, start time, end time, and unique destination IP addresses of the DoS intrusion events if there are any DoS intrusions detected
-    - Sending an email notification to all subscribers with the topic, start time, end time, and unique destination IP addresses of the DoS intrusion events if there are any DoS intrusions detected
-    - Inserting the list of documents into the database
-
-    :param buffer: A list of tuples, where each tuple contains the values of an intrusion detection event and the topic of the event
-    """
     docs = []
 
     dos_timestamp_start = 99909990000
@@ -430,24 +271,6 @@ async def flush_dos_intrusions(buffer):
     await create_dos_intrusion_detection_batch(docs)
 
 async def flush_portscan_intrusions(buffer):
-    """
-    Flushes the given buffer of PortScan intrusions to the database.
-
-    The function takes a list of tuples, where each tuple contains the values of an intrusion
-    detection event and the topic of the event.
-
-    The function is responsible for:
-
-    - Creating a list of documents to be inserted into the database
-    - Extracting the minimum and maximum timestamps of the PortScan intrusion events
-    - Extracting the unique source IP addresses of the PortScan intrusion events
-    - Sending a broadcast message with the count of all detection events, the count of DoS events, and the count of PortScan events
-    - Sending a broadcast message with the topic, start time, end time, and unique source IP addresses of the PortScan intrusion events if there are any PortScan intrusions detected
-    - Sending an email notification to all subscribers with the topic, start time, end time, and unique source IP addresses of the PortScan intrusion events if there are any PortScan intrusions detected
-    - Inserting the list of documents into the database
-
-    :param buffer: A list of tuples, where each tuple contains the values of an intrusion detection event and the topic of the event
-    """
     docs = []
 
     port_scan_timestamp_start = 99909990000
@@ -492,22 +315,7 @@ async def flush_portscan_intrusions(buffer):
     await create_portscan_intrusion_detection_batch(docs)
 
 async def flush_flows(buffer):
-    """
-    Flushes the given buffer of network flows to the database.
-
-    The function takes a list of network flow data points, and is responsible for inserting the list of network flow data points into the database
-
-    :param buffer: A list of network flow data points
-    """
     await create_network_flows_batch(buffer)
 
 async def flush_packets(buffer):
-    """
-    Flushes the given buffer of network packets to the database.
-
-    The function takes a list of network packet data points and is responsible for inserting the list of network packet data points into the database.
-
-    :param buffer: A list of network packet data points
-    """
-
     await create_network_packets_batch(buffer)
